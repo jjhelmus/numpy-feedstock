@@ -11,8 +11,9 @@ import numpy.linalg.lapack_lite
 import numpy.random.mtrand
 
 try:
-    from numpy.fft import using_mklfft
-    print('USING MKLFFT: %s' % using_mklfft)
+    from numpy.fft import _restore_dict  # sentinal that mkl_fft is in use
+    from mkl_fft import __version__
+    print('USING MKLFFT: %s' % __version__)
 except ImportError:
     print("Not using MKLFFT")
 
