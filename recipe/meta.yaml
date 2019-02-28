@@ -18,6 +18,7 @@ source:
       - 0003-Obtain-and-prefer-custom-gfortran-from-env-variable.patch
       - 0004-disable-memmap-filename-test-due-to-CI-link-confusio.patch
       - 0005-disable-broken-tests.patch
+      - 0017-mark-known-failing-tests-on-ppc64le.patch
       {% if blas_impl == "mkl" and (not win or vc|int >= 14) -%}
       # patches for MKL based enhancements
       - 0006-use-mklfft-when-available.patch
