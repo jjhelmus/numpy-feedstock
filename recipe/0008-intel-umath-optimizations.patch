@@ -1,26 +1,8 @@
-From a0103d8b50dd15bad287f25d0fa9b38d6b9f2f5d Mon Sep 17 00:00:00 2001
-From: Stuart Archibald <redacted>
-Date: Fri, 22 Feb 2019 10:36:44 +0000
-Subject: [PATCH 08/15] intel umath optimizations
-
----
- numpy/core/code_generators/generate_umath.py  |   64 +
- .../core/code_generators/ufunc_docstrings.py  |   63 +-
- numpy/core/include/numpy/npy_math.h           |   12 +
- numpy/core/setup.py                           |   26 +-
- numpy/core/setup_common.py                    |    8 +-
- numpy/core/src/npymath/npy_math_complex.c.src |   22 +-
- .../core/src/npymath/npy_math_internal.h.src  |   25 +-
- numpy/core/src/umath/funcs.inc.src            |   14 +
- numpy/core/src/umath/loops.c.src              | 1862 +++++++++++++++--
- numpy/core/src/umath/loops.h.src              |   10 +-
- 10 files changed, 1915 insertions(+), 191 deletions(-)
-
 diff --git a/numpy/core/code_generators/generate_umath.py b/numpy/core/code_generators/generate_umath.py
-index f5ee02c..bb37080 100644
+index bf17472728..82550ffb88 100644
 --- a/numpy/core/code_generators/generate_umath.py
 +++ b/numpy/core/code_generators/generate_umath.py
-@@ -604,6 +604,8 @@ defdict = {
+@@ -620,6 +620,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.arccos'),
            None,
@@ -29,7 +11,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='acos', astype={'e':'f'}),
            TD(P, f='arccos'),
            ),
-@@ -611,6 +613,8 @@ defdict = {
+@@ -627,6 +629,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.arccosh'),
            None,
@@ -38,7 +20,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='acosh', astype={'e':'f'}),
            TD(P, f='arccosh'),
            ),
-@@ -618,6 +622,8 @@ defdict = {
+@@ -634,6 +638,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.arcsin'),
            None,
@@ -47,7 +29,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='asin', astype={'e':'f'}),
            TD(P, f='arcsin'),
            ),
-@@ -625,6 +631,8 @@ defdict = {
+@@ -641,6 +647,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.arcsinh'),
            None,
@@ -56,7 +38,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='asinh', astype={'e':'f'}),
            TD(P, f='arcsinh'),
            ),
-@@ -632,6 +640,8 @@ defdict = {
+@@ -648,6 +656,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.arctan'),
            None,
@@ -65,7 +47,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='atan', astype={'e':'f'}),
            TD(P, f='arctan'),
            ),
-@@ -639,6 +649,8 @@ defdict = {
+@@ -655,6 +665,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.arctanh'),
            None,
@@ -74,7 +56,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='atanh', astype={'e':'f'}),
            TD(P, f='arctanh'),
            ),
-@@ -646,6 +658,8 @@ defdict = {
+@@ -662,6 +674,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.cos'),
            None,
@@ -83,7 +65,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='cos', astype={'e':'f'}),
            TD(P, f='cos'),
            ),
-@@ -653,6 +667,8 @@ defdict = {
+@@ -669,6 +683,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.sin'),
            None,
@@ -92,7 +74,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='sin', astype={'e':'f'}),
            TD(P, f='sin'),
            ),
-@@ -660,6 +676,8 @@ defdict = {
+@@ -676,6 +692,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.tan'),
            None,
@@ -101,7 +83,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='tan', astype={'e':'f'}),
            TD(P, f='tan'),
            ),
-@@ -667,6 +685,8 @@ defdict = {
+@@ -683,6 +701,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.cosh'),
            None,
@@ -110,7 +92,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='cosh', astype={'e':'f'}),
            TD(P, f='cosh'),
            ),
-@@ -674,6 +694,8 @@ defdict = {
+@@ -690,6 +710,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.sinh'),
            None,
@@ -119,7 +101,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='sinh', astype={'e':'f'}),
            TD(P, f='sinh'),
            ),
-@@ -681,6 +703,8 @@ defdict = {
+@@ -697,6 +719,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.tanh'),
            None,
@@ -128,16 +110,17 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='tanh', astype={'e':'f'}),
            TD(P, f='tanh'),
            ),
-@@ -688,6 +712,8 @@ defdict = {
-     Ufunc(1, 1, None,
+@@ -705,7 +729,8 @@ defdict = {
            docstrings.get('numpy.core.umath.exp'),
            None,
-+          TD('e', f='exp', astype={'e':'f'}),
+           TD('e', f='exp', astype={'e':'f'}),
+-          TD('f', simd=[('avx2', 'f'), ('avx512f', 'f')]),
++          # TD('f', simd=[('avx2', 'f'), ('avx512f', 'f')]),
 +          TD(inexactvec),
            TD(inexact, f='exp', astype={'e':'f'}),
            TD(P, f='exp'),
            ),
-@@ -702,13 +728,26 @@ defdict = {
+@@ -720,15 +745,27 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.expm1'),
            None,
@@ -159,12 +142,14 @@ index f5ee02c..bb37080 100644
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.log'),
            None,
-+          TD('e', f='log', astype={'e':'f'}),
+           TD('e', f='log', astype={'e':'f'}),
+-          TD('f', simd=[('avx2', 'f'), ('avx512f', 'f')]),
++          # TD('f', simd=[('avx2', 'f'), ('avx512f', 'f')]),
 +          TD(inexactvec),
            TD(inexact, f='log', astype={'e':'f'}),
            TD(P, f='log'),
            ),
-@@ -723,6 +762,8 @@ defdict = {
+@@ -743,6 +780,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.log10'),
            None,
@@ -173,7 +158,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='log10', astype={'e':'f'}),
            TD(P, f='log10'),
            ),
-@@ -730,6 +771,8 @@ defdict = {
+@@ -750,6 +789,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.log1p'),
            None,
@@ -182,7 +167,7 @@ index f5ee02c..bb37080 100644
            TD(inexact, f='log1p', astype={'e':'f'}),
            TD(P, f='log1p'),
            ),
-@@ -742,10 +785,21 @@ defdict = {
+@@ -762,10 +803,21 @@ defdict = {
            TD(inexact, f='sqrt', astype={'e':'f'}),
            TD(P, f='sqrt'),
            ),
@@ -204,25 +189,25 @@ index f5ee02c..bb37080 100644
            TD(flts, f='cbrt', astype={'e':'f'}),
            TD(P, f='cbrt'),
            ),
-@@ -753,6 +807,8 @@ defdict = {
+@@ -773,6 +825,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.ceil'),
            None,
 +          TD('e', f='ceil', astype={'e':'f'}),
 +          TD(inexactvec),
            TD(flts, f='ceil', astype={'e':'f'}),
-           TD(P, f='ceil'),
+           TD(O, f='npy_ObjectCeil'),
            ),
-@@ -760,6 +816,8 @@ defdict = {
+@@ -780,6 +834,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.trunc'),
            None,
 +          TD('e', f='trunc', astype={'e':'f'}),
 +          TD(inexactvec),
            TD(flts, f='trunc', astype={'e':'f'}),
-           TD(P, f='trunc'),
+           TD(O, f='npy_ObjectTrunc'),
            ),
-@@ -767,6 +825,8 @@ defdict = {
+@@ -787,6 +843,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.fabs'),
            None,
@@ -231,16 +216,16 @@ index f5ee02c..bb37080 100644
            TD(flts, f='fabs', astype={'e':'f'}),
            TD(P, f='fabs'),
         ),
-@@ -774,6 +834,8 @@ defdict = {
+@@ -794,6 +852,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.floor'),
            None,
 +          TD('e', f='floor', astype={'e':'f'}),
 +          TD(inexactvec),
            TD(flts, f='floor', astype={'e':'f'}),
-           TD(P, f='floor'),
+           TD(O, f='npy_ObjectFloor'),
            ),
-@@ -781,6 +843,8 @@ defdict = {
+@@ -801,6 +861,8 @@ defdict = {
      Ufunc(1, 1, None,
            docstrings.get('numpy.core.umath.rint'),
            None,
@@ -250,13 +235,13 @@ index f5ee02c..bb37080 100644
            TD(P, f='rint'),
            ),
 diff --git a/numpy/core/code_generators/ufunc_docstrings.py b/numpy/core/code_generators/ufunc_docstrings.py
-index 8a690c4..9cf52c0 100644
+index fb418aadcf..19605a0696 100644
 --- a/numpy/core/code_generators/ufunc_docstrings.py
 +++ b/numpy/core/code_generators/ufunc_docstrings.py
-@@ -1100,6 +1100,40 @@ add_newdoc('numpy.core.umath', 'equal',
- 
+@@ -1118,6 +1118,40 @@ add_newdoc('numpy.core.umath', 'equal',
+
      """)
- 
+
 +add_newdoc('numpy.core.umath', 'erf',
 +    """
 +    Calculate the error function of all elements in the input array.
@@ -294,10 +279,10 @@ index 8a690c4..9cf52c0 100644
  add_newdoc('numpy.core.umath', 'exp',
      """
      Calculate the exponential of all elements in the input array.
-@@ -3533,6 +3567,34 @@ add_newdoc('numpy.core.umath', 'sqrt',
- 
+@@ -3578,6 +3612,34 @@ add_newdoc('numpy.core.umath', 'sqrt',
+
      """)
- 
+
 +add_newdoc('numpy.core.umath', 'invsqrt',
 +    """
 +    Return the positive 1/square-root of an array, element-wise.
@@ -329,20 +314,20 @@ index 8a690c4..9cf52c0 100644
  add_newdoc('numpy.core.umath', 'cbrt',
      """
      Return the cube-root of an array, element-wise.
-@@ -3553,7 +3615,6 @@ add_newdoc('numpy.core.umath', 'cbrt',
+@@ -3598,7 +3660,6 @@ add_newdoc('numpy.core.umath', 'cbrt',
          If `out` was provided, `y` is a reference to it.
          $OUT_SCALAR_1
- 
+
 -
      Examples
      --------
      >>> np.cbrt([1,8,27])
 diff --git a/numpy/core/include/numpy/npy_math.h b/numpy/core/include/numpy/npy_math.h
-index 582390c..91ea82e 100644
+index 0e5bc70bcf..979dfd0db4 100644
 --- a/numpy/core/include/numpy/npy_math.h
 +++ b/numpy/core/include/numpy/npy_math.h
-@@ -129,8 +129,10 @@ NPY_INPLACE double npy_atan(double x);
- 
+@@ -161,8 +161,10 @@ NPY_INPLACE double npy_atan(double x);
+
  NPY_INPLACE double npy_log(double x);
  NPY_INPLACE double npy_log10(double x);
 +NPY_INPLACE double npy_erf(double x);
@@ -350,9 +335,9 @@ index 582390c..91ea82e 100644
  NPY_INPLACE double npy_sqrt(double x);
 +NPY_INPLACE double npy_invsqrt(double x);
  NPY_INPLACE double npy_cbrt(double x);
- 
+
  NPY_INPLACE double npy_fabs(double x);
-@@ -237,9 +239,11 @@ NPY_INPLACE float npy_ceilf(float x);
+@@ -271,9 +273,11 @@ NPY_INPLACE float npy_ceilf(float x);
  NPY_INPLACE float npy_rintf(float x);
  NPY_INPLACE float npy_truncf(float x);
  NPY_INPLACE float npy_sqrtf(float x);
@@ -364,7 +349,7 @@ index 582390c..91ea82e 100644
  NPY_INPLACE float npy_expf(float x);
  NPY_INPLACE float npy_expm1f(float x);
  NPY_INPLACE float npy_asinf(float x);
-@@ -280,9 +284,11 @@ NPY_INPLACE npy_longdouble npy_ceill(npy_longdouble x);
+@@ -314,9 +318,11 @@ NPY_INPLACE npy_longdouble npy_ceill(npy_longdouble x);
  NPY_INPLACE npy_longdouble npy_rintl(npy_longdouble x);
  NPY_INPLACE npy_longdouble npy_truncl(npy_longdouble x);
  NPY_INPLACE npy_longdouble npy_sqrtl(npy_longdouble x);
@@ -376,61 +361,61 @@ index 582390c..91ea82e 100644
  NPY_INPLACE npy_longdouble npy_expl(npy_longdouble x);
  NPY_INPLACE npy_longdouble npy_expm1l(npy_longdouble x);
  NPY_INPLACE npy_longdouble npy_asinl(npy_longdouble x);
-@@ -430,11 +436,13 @@ static NPY_INLINE npy_longdouble npy_cimagl(npy_clongdouble z)
+@@ -464,11 +470,13 @@ static NPY_INLINE npy_longdouble npy_cimagl(npy_clongdouble z)
  double npy_cabs(npy_cdouble z);
  double npy_carg(npy_cdouble z);
- 
+
 +npy_cdouble npy_cerf(npy_cdouble z);
  npy_cdouble npy_cexp(npy_cdouble z);
  npy_cdouble npy_clog(npy_cdouble z);
  npy_cdouble npy_cpow(npy_cdouble x, npy_cdouble y);
- 
+
  npy_cdouble npy_csqrt(npy_cdouble z);
 +npy_cdouble npy_cinvsqrt(npy_cdouble z);
- 
+
  npy_cdouble npy_ccos(npy_cdouble z);
  npy_cdouble npy_csin(npy_cdouble z);
-@@ -458,11 +466,13 @@ npy_cdouble npy_catanh(npy_cdouble z);
+@@ -492,11 +500,13 @@ npy_cdouble npy_catanh(npy_cdouble z);
  float npy_cabsf(npy_cfloat z);
  float npy_cargf(npy_cfloat z);
- 
+
 +npy_cfloat npy_cerff(npy_cfloat z);
  npy_cfloat npy_cexpf(npy_cfloat z);
  npy_cfloat npy_clogf(npy_cfloat z);
  npy_cfloat npy_cpowf(npy_cfloat x, npy_cfloat y);
- 
+
  npy_cfloat npy_csqrtf(npy_cfloat z);
 +npy_cfloat npy_cinvsqrtf(npy_cfloat z);
- 
+
  npy_cfloat npy_ccosf(npy_cfloat z);
  npy_cfloat npy_csinf(npy_cfloat z);
-@@ -487,11 +497,13 @@ npy_cfloat npy_catanhf(npy_cfloat z);
+@@ -521,11 +531,13 @@ npy_cfloat npy_catanhf(npy_cfloat z);
  npy_longdouble npy_cabsl(npy_clongdouble z);
  npy_longdouble npy_cargl(npy_clongdouble z);
- 
+
 +npy_clongdouble npy_cerfl(npy_clongdouble z);
  npy_clongdouble npy_cexpl(npy_clongdouble z);
  npy_clongdouble npy_clogl(npy_clongdouble z);
  npy_clongdouble npy_cpowl(npy_clongdouble x, npy_clongdouble y);
- 
+
  npy_clongdouble npy_csqrtl(npy_clongdouble z);
 +npy_clongdouble npy_cinvsqrtl(npy_clongdouble z);
- 
+
  npy_clongdouble npy_ccosl(npy_clongdouble z);
  npy_clongdouble npy_csinl(npy_clongdouble z);
 diff --git a/numpy/core/setup.py b/numpy/core/setup.py
-index 467b590..fb0386e 100644
+index 70b5fddb84..b8d9ff3e9f 100644
 --- a/numpy/core/setup.py
 +++ b/numpy/core/setup.py
-@@ -8,6 +8,7 @@ import warnings
- import platform
+@@ -10,6 +10,7 @@ import textwrap
  from os.path import join
+
  from numpy.distutils import log
 +from numpy.distutils.system_info import get_info
  from distutils.dep_util import newer
  from distutils.sysconfig import get_config_var
  from numpy._build_utils.apple_accelerate import (
-@@ -807,7 +808,6 @@ def configuration(parent_package='',top_path=None):
+@@ -816,7 +817,6 @@ def configuration(parent_package='',top_path=None):
              join('include', 'numpy', 'noprefix.h'),
              join('include', 'numpy', 'npy_interrupt.h'),
              join('include', 'numpy', 'npy_3kcompat.h'),
@@ -438,19 +423,19 @@ index 467b590..fb0386e 100644
              join('include', 'numpy', 'halffloat.h'),
              join('include', 'numpy', 'npy_common.h'),
              join('include', 'numpy', 'npy_os.h'),
-@@ -819,7 +819,7 @@ def configuration(parent_package='',top_path=None):
+@@ -828,7 +828,7 @@ def configuration(parent_package='',top_path=None):
              join('include', 'numpy', 'npy_1_7_deprecated_api.h'),
              # add library sources as distuils does not consider libraries
              # dependencies
 -            ] + npysort_sources + npymath_sources
 +            ] + npysort_sources
- 
+
      multiarray_src = [
              join('src', 'multiarray', 'alloc.c'),
-@@ -886,13 +886,14 @@ def configuration(parent_package='',top_path=None):
-             f.close()
+@@ -895,13 +895,14 @@ def configuration(parent_package='',top_path=None):
+                                                  generate_umath.__file__))
          return []
- 
+
 +    loops_src = [join('src', 'umath', 'loops.c.src'),
 +                 join('src', 'umath', 'loops.h.src'),]
 +
@@ -463,17 +448,18 @@ index 467b590..fb0386e 100644
 -            join('src', 'umath', 'loops.c.src'),
              join('src', 'umath', 'matmul.h.src'),
              join('src', 'umath', 'matmul.c.src'),
-             join('src', 'umath', 'ufunc_object.c'),
-@@ -915,6 +916,20 @@ def configuration(parent_package='',top_path=None):
+             join('src', 'umath', 'clip.h.src'),
+@@ -926,6 +927,21 @@ def configuration(parent_package='',top_path=None):
              join(codegen_dir, 'generate_ufunc_api.py'),
              ]
- 
+
 +    if platform.system() == "Windows":
 +        eca = ['/fp:fast=2', '/Qimf-precision=high', '/Qprec-sqrt', '/Qstd=c99']
 +        if sys.version_info < (3, 0):
 +            eca.append('/Qprec-div')
 +    else:
 +        eca = ['-fp-model', 'fast=2', '-fimf-precision=high', '-prec-sqrt']
++    eca = []
 +    config.add_library('loops',
 +                       sources=loops_src,
 +                       include_dirs=[],
@@ -485,7 +471,7 @@ index 467b590..fb0386e 100644
      config.add_extension('_multiarray_umath',
                           sources=multiarray_src + umath_src +
                                   npymath_sources + common_src +
-@@ -926,9 +941,10 @@ def configuration(parent_package='',top_path=None):
+@@ -937,9 +952,10 @@ def configuration(parent_package='',top_path=None):
                                    generate_umath_c,
                                    generate_ufunc_api,
                                   ],
@@ -495,10 +481,10 @@ index 467b590..fb0386e 100644
 -                         libraries=['npymath', 'npysort'],
 +                         libraries=['loops', 'npymath', 'npysort'],
                           extra_info=extra_info)
- 
+
      #######################################################################
 diff --git a/numpy/core/setup_common.py b/numpy/core/setup_common.py
-index f837df1..c242e18 100644
+index bf6abcf029..7b77acbfa7 100644
 --- a/numpy/core/setup_common.py
 +++ b/numpy/core/setup_common.py
 @@ -102,13 +102,13 @@ def check_api_version(apiversion, codegen_dir):
@@ -508,7 +494,7 @@ index f837df1..c242e18 100644
 -        "floor", "ceil", "sqrt", "log10", "log", "exp", "asin",
 +        "floor", "ceil", "sqrt", "log10", "log", "erf", "exp", "asin",
          "acos", "atan", "fmod", 'modf', 'frexp', 'ldexp']
- 
+
  # Standard functions which may not be available and for which we have a
  # replacement implementation. Note that some of these are C99 functions.
  OPTIONAL_STDFUNCS = ["expm1", "log1p", "acosh", "asinh", "atanh",
@@ -517,7 +503,7 @@ index f837df1..c242e18 100644
          "copysign", "nextafter", "ftello", "fseeko",
          "strtoll", "strtoull", "cbrt", "strtold_l", "fallocate",
          "backtrace", "madvise"]
-@@ -179,7 +179,7 @@ OPTIONAL_STDFUNCS_MAYBE = [
+@@ -199,7 +199,7 @@ OPTIONAL_STDFUNCS_MAYBE = [
  # C99 functions: float and long double versions
  C99_FUNCS = [
      "sin", "cos", "tan", "sinh", "cosh", "tanh", "fabs", "floor", "ceil",
@@ -526,7 +512,7 @@ index f837df1..c242e18 100644
      "asin", "acos", "atan", "asinh", "acosh", "atanh", "hypot", "atan2",
      "pow", "fmod", "modf", 'frexp', 'ldexp', "exp2", "log2", "copysign",
      "nextafter", "cbrt"
-@@ -191,7 +191,7 @@ C99_COMPLEX_TYPES = [
+@@ -211,7 +211,7 @@ C99_COMPLEX_TYPES = [
      ]
  C99_COMPLEX_FUNCS = [
      "cabs", "cacos", "cacosh", "carg", "casin", "casinh", "catan",
@@ -534,15 +520,15 @@ index f837df1..c242e18 100644
 +    "catanh", "ccos", "ccosh", "cexp", "cimag", "clog", "cerf", "conj", "cpow",
      "cproj", "creal", "csin", "csinh", "csqrt", "ctan", "ctanh"
      ]
- 
+
 diff --git a/numpy/core/src/npymath/npy_math_complex.c.src b/numpy/core/src/npymath/npy_math_complex.c.src
-index cf427da..e1de1e1 100644
+index a63997994e..da0d4af174 100644
 --- a/numpy/core/src/npymath/npy_math_complex.c.src
 +++ b/numpy/core/src/npymath/npy_math_complex.c.src
 @@ -369,6 +369,15 @@ npy_clog@c@(@ctype@ z)
  }
  #endif
- 
+
 +#ifndef HAVE_CERF@C@
 +
 +@ctype@
@@ -553,12 +539,12 @@ index cf427da..e1de1e1 100644
 +#endif
 +
  #ifndef HAVE_CSQRT@C@
- 
+
  /* We risk spurious overflow for components >= DBL_MAX / (1 + sqrt(2)). */
 @@ -446,6 +455,15 @@ npy_csqrt@c@(@ctype@ z)
  #undef THRESH
  #endif
- 
+
 +#ifndef HAVE_CINVSQRT@C@
 +
 +@ctype@
@@ -571,9 +557,9 @@ index cf427da..e1de1e1 100644
  /*
   * Always use this function because of the multiplication for small
   * integer powers, but in the body use cpow if it is available.
-@@ -1789,9 +1807,9 @@ npy_@kind@@c@(@ctype@ z)
+@@ -1804,9 +1822,9 @@ npy_@kind@@c@(@ctype@ z)
  /**end repeat1**/
- 
+
  /**begin repeat1
 - * #kind = cexp,clog,csqrt,ccos,csin,ctan,ccosh,csinh,ctanh,
 + * #kind = cerf,cexp,clog,csqrt,cinvsqrt,ccos,csin,ctan,ccosh,csinh,ctanh,
@@ -584,12 +570,12 @@ index cf427da..e1de1e1 100644
   */
  #ifdef HAVE_@KIND@@C@
 diff --git a/numpy/core/src/npymath/npy_math_internal.h.src b/numpy/core/src/npymath/npy_math_internal.h.src
-index f2e5229..6f919f1 100644
+index fa820baac3..2ced6a7d13 100644
 --- a/numpy/core/src/npymath/npy_math_internal.h.src
 +++ b/numpy/core/src/npymath/npy_math_internal.h.src
 @@ -379,10 +379,10 @@ NPY_INPLACE double npy_log2(double x)
   */
- 
+
  /**begin repeat1
 - * #kind = sin,cos,tan,sinh,cosh,tanh,fabs,floor,ceil,rint,trunc,sqrt,log10,
 - *         log,exp,expm1,asin,acos,atan,asinh,acosh,atanh,log1p,exp2,log2#
@@ -600,7 +586,7 @@ index f2e5229..6f919f1 100644
 + * #KIND = SIN,COS,TAN,SINH,COSH,TANH,FABS,FLOOR,CEIL,RINT,TRUNC,SQRT,INVSQRT,LOG10,
 + *         LOG,ERF,EXP,EXPM1,ASIN,ACOS,ATAN,ASINH,ACOSH,ATANH,LOG1P,EXP2,LOG2#
   */
- 
+
  #ifdef @kind@@c@
 @@ -459,9 +459,9 @@ NPY_INPLACE @type@ npy_frexp@c@(@type@ x, int* exp)
   */
@@ -615,9 +601,9 @@ index f2e5229..6f919f1 100644
  #ifdef HAVE_@KIND@@C@
  NPY_INPLACE @type@ npy_@kind@@c@(@type@ x)
 @@ -472,6 +472,19 @@ NPY_INPLACE @type@ npy_@kind@@c@(@type@ x)
- 
+
  /**end repeat1**/
- 
+
 +/**begin repeat1
 + * #kind = invsqrt#
 + * #KIND = INVSQRT#
@@ -634,14 +620,40 @@ index f2e5229..6f919f1 100644
  /**begin repeat1
   * #kind = atan2,hypot,pow,fmod,copysign#
   * #KIND = ATAN2,HYPOT,POW,FMOD,COPYSIGN#
+diff --git a/numpy/core/src/umath/fast_loop_macros.h b/numpy/core/src/umath/fast_loop_macros.h
+index ae6d69a3e7..facf1b4089 100644
+--- a/numpy/core/src/umath/fast_loop_macros.h
++++ b/numpy/core/src/umath/fast_loop_macros.h
+@@ -34,6 +34,21 @@
+     npy_intp i;\
+     for(i = 0; i < n; i++, ip1 += is1, op1 += os1)
+
++#define UNARY_LOOP_VECTORIZED\
++    char *ip1 = args[0], *op1 = args[1];\
++    npy_intp is1 = steps[0], os1 = steps[1];\
++    npy_intp n = dimensions[0];\
++    npy_intp i;\
++    _Pragma("vector")\
++    for(i = 0; i < n; i++, ip1 += is1, op1 += os1)
++
++#define UNARY_LOOP_DISPATCH(cond, body)\
++    if (cond) {\
++        UNARY_LOOP_VECTORIZED { body; }\
++    } else {\
++        UNARY_LOOP { body; }\
++    }
++
+ /** (ip1) -> (op1, op2) */
+ #define UNARY_LOOP_TWO_OUT\
+     char *ip1 = args[0], *op1 = args[1], *op2 = args[2];\
 diff --git a/numpy/core/src/umath/funcs.inc.src b/numpy/core/src/umath/funcs.inc.src
-index da2ab07..45d80ce 100644
+index c2732f9252..b04c63e479 100644
 --- a/numpy/core/src/umath/funcs.inc.src
 +++ b/numpy/core/src/umath/funcs.inc.src
-@@ -270,6 +270,13 @@ nc_sqrt@c@(@ctype@ *x, @ctype@ *r)
+@@ -314,6 +314,13 @@ nc_sqrt@c@(@ctype@ *x, @ctype@ *r)
      return;
  }
- 
+
 +static void
 +nc_invsqrt@c@(@ctype@ *x, @ctype@ *r)
 +{
@@ -652,10 +664,10 @@ index da2ab07..45d80ce 100644
  static void
  nc_rint@c@(@ctype@ *x, @ctype@ *r)
  {
-@@ -293,6 +300,13 @@ nc_log1p@c@(@ctype@ *x, @ctype@ *r)
+@@ -337,6 +344,13 @@ nc_log1p@c@(@ctype@ *x, @ctype@ *r)
      return;
  }
- 
+
 +static void
 +nc_erf@c@(@ctype@ *x, @ctype@ *r)
 +{
@@ -667,7 +679,7 @@ index da2ab07..45d80ce 100644
  nc_exp@c@(@ctype@ *x, @ctype@ *r)
  {
 diff --git a/numpy/core/src/umath/loops.c.src b/numpy/core/src/umath/loops.c.src
-index ae3ece7..983dbac 100644
+index f84d74efe1..a121472fe3 100644
 --- a/numpy/core/src/umath/loops.c.src
 +++ b/numpy/core/src/umath/loops.c.src
 @@ -1,5 +1,6 @@
@@ -679,9 +691,9 @@ index ae3ece7..983dbac 100644
  #define _MULTIARRAYMODULE
  #define NPY_NO_DEPRECATED_API NPY_API_VERSION
 @@ -20,14 +21,6 @@
- 
+
  #include <string.h> /* for memchr */
- 
+
 -/*
 - * cutoff blocksize for pairwise summation
 - * decreasing it decreases errors slightly as more pairs are summed but
@@ -690,13 +702,13 @@ index ae3ece7..983dbac 100644
 - */
 -#define PW_BLOCKSIZE    128
 -
- 
+
  /*
   * largest simd vector size in bytes numpy supports
 @@ -38,6 +31,82 @@
  #define NPY_MAX_SIMD_SIZE 1024
  #endif
- 
+
 +/*
 + * cutoff blocksize for pairwise summation
 + * decreasing it decreases errors slightly as more pairs are summed but
@@ -776,38 +788,15 @@ index ae3ece7..983dbac 100644
  /*
   * include vectorized functions and dispatchers
   * this file is safe to include also for generic builds
-@@ -45,7 +114,7 @@
-  * runtime detected
-  */
- #include "simd.inc"
--
+@@ -49,6 +118,7 @@
+ /** Provides the various *_LOOP macros */
+ #include "fast_loop_macros.h"
+
 +#include <stdio.h>
- 
- /*
-  *****************************************************************************
-@@ -88,6 +157,21 @@
-     npy_intp i;\
-     for(i = 0; i < n; i++, ip1 += is1, op1 += os1)
- 
-+#define UNARY_LOOP_VECTORIZED\
-+    char *ip1 = args[0], *op1 = args[1];\
-+    npy_intp is1 = steps[0], os1 = steps[1];\
-+    npy_intp n = dimensions[0];\
-+    npy_intp i;\
-+    _Pragma("simd")\
-+    for(i = 0; i < n; i++, ip1 += is1, op1 += os1)
-+
-+#define UNARY_LOOP_DISPATCH(cond, body)\
-+    if (cond) {\
-+        UNARY_LOOP_VECTORIZED { body; }\
-+    } else {\
-+        UNARY_LOOP { body; }\
-+    }
-+
- /*
-  * loop with contiguous specialization
-  * op should be the code working on `tin in` and
-@@ -794,14 +878,9 @@ BOOL_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED
+
+ /******************************************************************************
+  **                          GENERIC FLOAT LOOPS                             **
+@@ -645,14 +715,9 @@ BOOL_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED
  NPY_NO_EXPORT void
  BOOL_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
@@ -825,24 +814,24 @@ index ae3ece7..983dbac 100644
      }
  }
  /**end repeat**/
-@@ -968,6 +1047,9 @@ NPY_NO_EXPORT NPY_GCC_OPT_3 @ATTR@ void
+@@ -836,6 +901,9 @@ NPY_NO_EXPORT NPY_GCC_OPT_3 @ATTR@ void
   * #OP =  >, <#
   **/
- 
+
 +#if defined(__ICC) || defined(__INTEL_COMPILER)
 +#pragma intel optimization_level 2
 +#endif
  NPY_NO_EXPORT void
  @TYPE@_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
-@@ -1629,98 +1711,91 @@ TIMEDELTA_mm_m_remainder(char **args, npy_intp *dimensions, npy_intp *steps, voi
+@@ -1575,148 +1643,141 @@ TIMEDELTA_mm_qm_divmod(char **args, npy_intp *dimensions, npy_intp *steps, void
   * Float types
   *  #type = npy_float, npy_double#
   *  #TYPE = FLOAT, DOUBLE#
 + *  #c = s, d#
   *  #scalarf = npy_sqrtf, npy_sqrt#
   */
- 
+
  NPY_NO_EXPORT void
  @TYPE@_sqrt(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
@@ -863,42 +852,27 @@ index ae3ece7..983dbac 100644
 +	)
      }
  }
- 
+
  /**end repeat**/
- 
--
+
  /**begin repeat
-  * Float types
-- *  #type = npy_float, npy_double, npy_longdouble, npy_float#
-- *  #dtype = npy_float, npy_double, npy_longdouble, npy_half#
-- *  #TYPE = FLOAT, DOUBLE, LONGDOUBLE, HALF#
-- *  #c = f, , l, #
-- *  #C = F, , L, #
-- *  #trf = , , , npy_half_to_float#
+- *  #func = exp, log#
+- *  #scalarf = npy_expf, npy_logf#
++ * Float types
 + *  #type = npy_float, npy_double#
 + *  #TYPE = FLOAT, DOUBLE#
 + *  #c = s, d#
 + *  #scalarf = npy_invsqrtf, npy_invsqrt#
   */
- 
--/*
-- * Pairwise summation, rounding error O(lg n) instead of O(n).
-- * The recursion depth is O(lg n) as well.
-- * when updating also update similar complex floats summation
-- */
--static @type@
--pairwise_sum_@TYPE@(char *a, npy_intp n, npy_intp stride)
+
+-NPY_NO_EXPORT NPY_GCC_OPT_3 void
+-FLOAT_@func@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(data))
 +NPY_NO_EXPORT void
 +@TYPE@_invsqrt(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
--    if (n < 8) {
--        npy_intp i;
--        @type@ res = 0.;
--
--        for (i = 0; i < n; i++) {
--            res += @trf@(*((@dtype@*)(a + i * stride)));
--        }
--        return res;
+-    UNARY_LOOP {
+-	const npy_float in1 = *(npy_float *)ip1;
+-	*(npy_float *)op1 = @scalarf@(in1);
 +    if(IS_UNARY_CONT(@type@, @type@) &&
 +           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
 +           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
@@ -912,60 +886,49 @@ index ae3ece7..983dbac 100644
 +            *(@type@ *)op1 = @scalarf@(in1);
 +	)
      }
--    else if (n <= PW_BLOCKSIZE) {
--        npy_intp i;
--        @type@ r[8], res;
-+}
- 
--        /*
--         * sum a block with 8 accumulators
--         * 8 times unroll reduces blocksize to 16 and allows vectorization with
--         * avx without changing summation ordering
--         */
--        r[0] = @trf@(*((@dtype@ *)(a + 0 * stride)));
--        r[1] = @trf@(*((@dtype@ *)(a + 1 * stride)));
--        r[2] = @trf@(*((@dtype@ *)(a + 2 * stride)));
--        r[3] = @trf@(*((@dtype@ *)(a + 3 * stride)));
--        r[4] = @trf@(*((@dtype@ *)(a + 4 * stride)));
--        r[5] = @trf@(*((@dtype@ *)(a + 5 * stride)));
--        r[6] = @trf@(*((@dtype@ *)(a + 6 * stride)));
--        r[7] = @trf@(*((@dtype@ *)(a + 7 * stride)));
-+/**end repeat**/
- 
--        for (i = 8; i < n - (n % 8); i += 8) {
--            /* small blocksizes seems to mess with hardware prefetch */
--            NPY_PREFETCH(a + (i + 512/(npy_intp)sizeof(@dtype@))*stride, 0, 3);
--            r[0] += @trf@(*((@dtype@ *)(a + (i + 0) * stride)));
--            r[1] += @trf@(*((@dtype@ *)(a + (i + 1) * stride)));
--            r[2] += @trf@(*((@dtype@ *)(a + (i + 2) * stride)));
--            r[3] += @trf@(*((@dtype@ *)(a + (i + 3) * stride)));
--            r[4] += @trf@(*((@dtype@ *)(a + (i + 4) * stride)));
--            r[5] += @trf@(*((@dtype@ *)(a + (i + 5) * stride)));
--            r[6] += @trf@(*((@dtype@ *)(a + (i + 6) * stride)));
--            r[7] += @trf@(*((@dtype@ *)(a + (i + 7) * stride)));
--        }
-+/**begin repeat
+ }
+
+ /**end repeat**/
+
+ /**begin repeat
+- * #isa = avx512f, avx2#
+- * #ISA = AVX512F, AVX2#
+- * #CHK = HAVE_ATTRIBUTE_TARGET_AVX512F_WITH_INTRINSICS, HAVE_ATTRIBUTE_TARGET_AVX2_WITH_INTRINSICS#
+- */
+-
+-/**begin repeat1
+- *  #func = exp, log#
+- *  #scalarf = npy_expf, npy_logf#
 + * Float types
 + *  #type = npy_float, npy_double#
 + *  #TYPE = FLOAT, DOUBLE#
 + *  #A = F, #
 + *  #c = s, d#
 + *  #scalarf = npy_expf, npy_exp#
-+ */
- 
--        /* accumulate now to avoid stack spills for single peel loop */
--        res = ((r[0] + r[1]) + (r[2] + r[3])) +
--              ((r[4] + r[5]) + (r[6] + r[7]));
+  */
+
+-NPY_NO_EXPORT NPY_GCC_OPT_3 void
+-FLOAT_@func@_@isa@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(data))
 +NPY_NO_EXPORT void
 +@TYPE@_exp(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
-+{
-+    int ignore_fpstatus = 0;
- 
--        /* do non multiple of 8 rest */
--        for (; i < n; i++) {
--            res += @trf@(*((@dtype@ *)(a + i * stride)));
+ {
+-    if (!run_unary_@isa@_@func@_FLOAT(args, dimensions, steps)) {
+-        UNARY_LOOP {
+-            /*
+-             * We use the AVX function to compute exp/log for scalar elements as well.
+-             * This is needed to ensure the output of strided and non-strided
+-             * cases match. SIMD code handles strided input cases, but not
+-             * strided output.
+-             */
+-#if defined @CHK@ && defined NPY_HAVE_SSE2_INTRINSICS
+-            @ISA@_@func@_FLOAT((npy_float *)op1, (npy_float *)ip1, 1, steps[0]);
+-#else
+-            const npy_float in1 = *(npy_float *)ip1;
+-            *(npy_float *)op1 = @scalarf@(in1);
+-#endif
 -        }
--        return res;
++    int ignore_fpstatus = 0;
++
 +    if(IS_UNARY_CONT(@type@, @type@) &&
 +           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
 +           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))) {
@@ -982,21 +945,132 @@ index ae3ece7..983dbac 100644
 +            }
 +            *(@type@ *)op1 = @scalarf@(in1);
 +	)
-     }
--    else {
--        /* divide by two but avoid non-multiples of unroll factor */
--        npy_intp n2 = n / 2;
--
--        n2 -= n2 % 8;
--        return pairwise_sum_@TYPE@(a, n2, stride) +
--               pairwise_sum_@TYPE@(a + n2 * stride, n - n2, stride);
++    }
 +    if(ignore_fpstatus) {
 +        feclearexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID);
      }
  }
- 
-@@ -1728,114 +1803,1508 @@ pairwise_sum_@TYPE@(char *a, npy_intp n, npy_intp stride)
- 
+
+-/**end repeat1**/
+ /**end repeat**/
+
+ /**begin repeat
+  * Float types
+- *  #type = npy_float, npy_double, npy_longdouble, npy_float#
+- *  #dtype = npy_float, npy_double, npy_longdouble, npy_half#
+- *  #TYPE = FLOAT, DOUBLE, LONGDOUBLE, HALF#
+- *  #c = f, , l, #
+- *  #C = F, , L, #
+- *  #trf = , , , npy_half_to_float#
++ *  #type = npy_float, npy_double#
++ *  #TYPE = FLOAT, DOUBLE#
++ *  #c = s, d#
++ *  #scalarf = npy_exp2f, npy_exp2#
+  */
+
+-/*
+- * Pairwise summation, rounding error O(lg n) instead of O(n).
+- * The recursion depth is O(lg n) as well.
+- * when updating also update similar complex floats summation
+- */
+-static @type@
+-pairwise_sum_@TYPE@(char *a, npy_intp n, npy_intp stride)
++/* TODO: Use VML */
++NPY_NO_EXPORT void
++@TYPE@_exp2(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
+ {
+-    if (n < 8) {
+-        npy_intp i;
+-        @type@ res = 0.;
+-
+-        for (i = 0; i < n; i++) {
+-            res += @trf@(*((@dtype@*)(a + i * stride)));
+-        }
+-        return res;
+-    }
+-    else if (n <= PW_BLOCKSIZE) {
+-        npy_intp i;
+-        @type@ r[8], res;
+-
+-        /*
+-         * sum a block with 8 accumulators
+-         * 8 times unroll reduces blocksize to 16 and allows vectorization with
+-         * avx without changing summation ordering
+-         */
+-        r[0] = @trf@(*((@dtype@ *)(a + 0 * stride)));
+-        r[1] = @trf@(*((@dtype@ *)(a + 1 * stride)));
+-        r[2] = @trf@(*((@dtype@ *)(a + 2 * stride)));
+-        r[3] = @trf@(*((@dtype@ *)(a + 3 * stride)));
+-        r[4] = @trf@(*((@dtype@ *)(a + 4 * stride)));
+-        r[5] = @trf@(*((@dtype@ *)(a + 5 * stride)));
+-        r[6] = @trf@(*((@dtype@ *)(a + 6 * stride)));
+-        r[7] = @trf@(*((@dtype@ *)(a + 7 * stride)));
+-
+-        for (i = 8; i < n - (n % 8); i += 8) {
+-            /* small blocksizes seems to mess with hardware prefetch */
+-            NPY_PREFETCH(a + (i + 512/(npy_intp)sizeof(@dtype@))*stride, 0, 3);
+-            r[0] += @trf@(*((@dtype@ *)(a + (i + 0) * stride)));
+-            r[1] += @trf@(*((@dtype@ *)(a + (i + 1) * stride)));
+-            r[2] += @trf@(*((@dtype@ *)(a + (i + 2) * stride)));
+-            r[3] += @trf@(*((@dtype@ *)(a + (i + 3) * stride)));
+-            r[4] += @trf@(*((@dtype@ *)(a + (i + 4) * stride)));
+-            r[5] += @trf@(*((@dtype@ *)(a + (i + 5) * stride)));
+-            r[6] += @trf@(*((@dtype@ *)(a + (i + 6) * stride)));
+-            r[7] += @trf@(*((@dtype@ *)(a + (i + 7) * stride)));
+-        }
++    UNARY_LOOP_DISPATCH(
++        DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
++        ,
++        const @type@ in1 = *(@type@ *)ip1;
++        *(@type@ *)op1 = @scalarf@(in1);
++    )
++}
+
+-        /* accumulate now to avoid stack spills for single peel loop */
+-        res = ((r[0] + r[1]) + (r[2] + r[3])) +
+-              ((r[4] + r[5]) + (r[6] + r[7]));
++/**end repeat**/
+
+-        /* do non multiple of 8 rest */
+-        for (; i < n; i++) {
+-            res += @trf@(*((@dtype@ *)(a + i * stride)));
+-        }
+-        return res;
+-    }
+-    else {
+-        /* divide by two but avoid non-multiples of unroll factor */
+-        npy_intp n2 = n / 2;
++/**begin repeat
++ * Float types
++ *  #type = npy_float, npy_double#
++ *  #TYPE = FLOAT, DOUBLE#
++ *  #c = s, d#
++ *  #scalarf = npy_expm1f, npy_expm1#
++ */
+
+-        n2 -= n2 % 8;
+-        return pairwise_sum_@TYPE@(a, n2, stride) +
+-               pairwise_sum_@TYPE@(a + n2 * stride, n - n2, stride);
++NPY_NO_EXPORT void
++@TYPE@_expm1(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
++{
++    if(IS_UNARY_CONT(@type@, @type@) &&
++           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
++           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
++        CHUNKED_VML_CALL2(v@c@Expm1, dimensions[0], @type@, args[0], args[1]);
++        /* v@c@Expm1(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
++    } else {
++        UNARY_LOOP_DISPATCH(
++            DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
++	    ,
++            const @type@ in1 = *(@type@ *)ip1;
++            *(@type@ *)op1 = @scalarf@(in1);
++	)
+     }
+ }
+
+@@ -1724,112 +1785,1458 @@ pairwise_sum_@TYPE@(char *a, npy_intp n, npy_intp stride)
+
  /**begin repeat
   * Float types
 - *  #type = npy_float, npy_double, npy_longdouble#
@@ -1006,32 +1080,24 @@ index ae3ece7..983dbac 100644
 + *  #type = npy_float, npy_double#
 + *  #TYPE = FLOAT, DOUBLE#
 + *  #c = s, d#
-+ *  #scalarf = npy_exp2f, npy_exp2#
++ *  #scalarf = npy_erff, npy_erf#
   */
- 
+
 -/**begin repeat1
 - * Arithmetic
 - * # kind = add, subtract, multiply, divide#
 - * # OP = +, -, *, /#
 - * # PW = 1, 0, 0, 0#
 - */
-+/* TODO: Use VML */
  NPY_NO_EXPORT void
 -@TYPE@_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
-+@TYPE@_exp2(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
++@TYPE@_erf(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
 -    if (IS_BINARY_REDUCE) {
 -#if @PW@
 -        @type@ * iop1 = (@type@ *)args[0];
 -        npy_intp n = dimensions[0];
-+    UNARY_LOOP_DISPATCH(
-+        DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
-+        ,
-+        const @type@ in1 = *(@type@ *)ip1;
-+        *(@type@ *)op1 = @scalarf@(in1);
-+    )
-+}
- 
+-
 -        *iop1 @OP@= pairwise_sum_@TYPE@(args[1], n, steps[1]);
 -#else
 -        BINARY_REDUCE_LOOP(@type@) {
@@ -1042,24 +1108,11 @@ index ae3ece7..983dbac 100644
 -    }
 -    else if (!run_binary_simd_@kind@_@TYPE@(args, dimensions, steps)) {
 -        BINARY_LOOP {
-+/**end repeat**/
-+
-+/**begin repeat
-+ * Float types
-+ *  #type = npy_float, npy_double#
-+ *  #TYPE = FLOAT, DOUBLE#
-+ *  #c = s, d#
-+ *  #scalarf = npy_expm1f, npy_expm1#
-+ */
-+
-+NPY_NO_EXPORT void
-+@TYPE@_expm1(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
-+{
 +    if(IS_UNARY_CONT(@type@, @type@) &&
 +           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
 +           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
-+        CHUNKED_VML_CALL2(v@c@Expm1, dimensions[0], @type@, args[0], args[1]);
-+        /* v@c@Expm1(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
++        CHUNKED_VML_CALL2(v@c@Erf, dimensions[0], @type@, args[0], args[1]);
++        /* v@c@Erf(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
 +    } else {
 +        UNARY_LOOP_DISPATCH(
 +            DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
@@ -1073,7 +1126,7 @@ index ae3ece7..983dbac 100644
      }
  }
 -/**end repeat1**/
- 
+
 -/**begin repeat1
 - * #kind = equal, not_equal, less, less_equal, greater, greater_equal,
 - *        logical_and, logical_or#
@@ -1085,20 +1138,20 @@ index ae3ece7..983dbac 100644
 + *  #type = npy_float, npy_double#
 + *  #TYPE = FLOAT, DOUBLE#
 + *  #c = s, d#
-+ *  #scalarf = npy_erff, npy_erf#
++ *  #scalarf = npy_logf, npy_log#
   */
 +
  NPY_NO_EXPORT void
 -@TYPE@_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
-+@TYPE@_erf(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
++@TYPE@_log(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
 -    if (!run_binary_simd_@kind@_@TYPE@(args, dimensions, steps)) {
 -        BINARY_LOOP {
 +    if(IS_UNARY_CONT(@type@, @type@) &&
 +           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
 +           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
-+        CHUNKED_VML_CALL2(v@c@Erf, dimensions[0], @type@, args[0], args[1]);
-+        /* v@c@Erf(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
++        CHUNKED_VML_CALL2(v@c@Ln, dimensions[0], @type@, args[0], args[1]);
++        /* v@c@Ln(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
 +    } else {
 +        UNARY_LOOP_DISPATCH(
 +            DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
@@ -1112,40 +1165,7 @@ index ae3ece7..983dbac 100644
      }
  }
 -/**end repeat1**/
-+
-+/**end repeat**/
-+
-+/**begin repeat
-+ * Float types
-+ *  #type = npy_float, npy_double#
-+ *  #TYPE = FLOAT, DOUBLE#
-+ *  #c = s, d#
-+ *  #scalarf = npy_logf, npy_log#
-+ */
- 
- NPY_NO_EXPORT void
--@TYPE@_logical_xor(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
-+@TYPE@_log(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
- {
--    BINARY_LOOP {
--        const int t1 = !!*(@type@ *)ip1;
--        const int t2 = !!*(@type@ *)ip2;
--        *((npy_bool *)op1) = (t1 != t2);
-+    if(IS_UNARY_CONT(@type@, @type@) &&
-+           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
-+           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
-+        CHUNKED_VML_CALL2(v@c@Ln, dimensions[0], @type@, args[0], args[1]);
-+        /* v@c@Ln(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
-+    } else {
-+        UNARY_LOOP_DISPATCH(
-+            DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
-+	    ,
-+            const @type@ in1 = *(@type@ *)ip1;
-+            *(@type@ *)op1 = @scalarf@(in1);
-+	)
-     }
- }
- 
+
 +/**end repeat**/
 +
 +/**begin repeat
@@ -1158,24 +1178,22 @@ index ae3ece7..983dbac 100644
 +
 +/* TODO: Use VML */
  NPY_NO_EXPORT void
--@TYPE@_logical_not(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
+-@TYPE@_logical_xor(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
 +@TYPE@_log2(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
--    UNARY_LOOP {
+-    BINARY_LOOP {
+-        const int t1 = !!*(@type@ *)ip1;
+-        const int t2 = !!*(@type@ *)ip2;
+-        *((npy_bool *)op1) = (t1 != t2);
+-    }
 +    UNARY_LOOP_DISPATCH(
 +        DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
 +        ,
-         const @type@ in1 = *(@type@ *)ip1;
--        *((npy_bool *)op1) = !in1;
--    }
++        const @type@ in1 = *(@type@ *)ip1;
 +        *(@type@ *)op1 = @scalarf@(in1);
 +    )
  }
- 
--/**begin repeat1
-- * #kind = isnan, isinf, isfinite, signbit#
-- * #func = npy_isnan, npy_isinf, npy_isfinite, npy_signbit#
-- **/
+
 +/**end repeat**/
 +
 +/**begin repeat
@@ -1187,16 +1205,52 @@ index ae3ece7..983dbac 100644
 + */
 +
  NPY_NO_EXPORT void
--@TYPE@_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
+-@TYPE@_logical_not(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
 +@TYPE@_log10(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
+ {
+-    UNARY_LOOP {
+-        const @type@ in1 = *(@type@ *)ip1;
+-        *((npy_bool *)op1) = !in1;
++    if(IS_UNARY_CONT(@type@, @type@) &&
++           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
++           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
++        CHUNKED_VML_CALL2(v@c@Log10, dimensions[0], @type@, args[0], args[1]);
++        /* v@c@Log10(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
++    } else {
++        UNARY_LOOP_DISPATCH(
++            DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
++	    ,
++            const @type@ in1 = *(@type@ *)ip1;
++            *(@type@ *)op1 = @scalarf@(in1);
++	)
+     }
+ }
+
+-/**begin repeat1
+- * #kind = isnan, isinf, isfinite, signbit#
+- * #func = npy_isnan, npy_isinf, npy_isfinite, npy_signbit#
+- **/
++/**end repeat**/
++
++/**begin repeat
++ * Float types
++ *  #type = npy_float, npy_double#
++ *  #TYPE = FLOAT, DOUBLE#
++ *  #c = s, d#
++ *  #scalarf = npy_log1pf, npy_log1p#
++ */
++
+ NPY_NO_EXPORT void
+-@TYPE@_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
++@TYPE@_log1p(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
 -    if (!run_@kind@_simd_@TYPE@(args, dimensions, steps)) {
 -        UNARY_LOOP {
 +    if(IS_UNARY_CONT(@type@, @type@) &&
 +           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
 +           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
-+        CHUNKED_VML_CALL2(v@c@Log10, dimensions[0], @type@, args[0], args[1]);
-+        /* v@c@Log10(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
++        CHUNKED_VML_CALL2(v@c@Log1p, dimensions[0], @type@, args[0], args[1]);
++        /* v@c@Log1p(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
 +    } else {
 +        UNARY_LOOP_DISPATCH(
 +            DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
@@ -1218,49 +1272,16 @@ index ae3ece7..983dbac 100644
 + *  #type = npy_float, npy_double#
 + *  #TYPE = FLOAT, DOUBLE#
 + *  #c = s, d#
-+ *  #scalarf = npy_log1pf, npy_log1p#
++ *  #scalarf = npy_cosf, npy_cos#
 + */
- 
+
  NPY_NO_EXPORT void
 -@TYPE@_spacing(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
-+@TYPE@_log1p(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
++@TYPE@_cos(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
 -    UNARY_LOOP {
 -        const @type@ in1 = *(@type@ *)ip1;
 -        *((@type@ *)op1) = npy_spacing@c@(in1);
-+    if(IS_UNARY_CONT(@type@, @type@) &&
-+           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
-+           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
-+        CHUNKED_VML_CALL2(v@c@Log1p, dimensions[0], @type@, args[0], args[1]);
-+        /* v@c@Log1p(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
-+    } else {
-+        UNARY_LOOP_DISPATCH(
-+            DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
-+	    ,
-+            const @type@ in1 = *(@type@ *)ip1;
-+            *(@type@ *)op1 = @scalarf@(in1);
-+	)
-     }
- }
- 
-+/**end repeat**/
-+
-+/**begin repeat
-+ * Float types
-+ *  #type = npy_float, npy_double#
-+ *  #TYPE = FLOAT, DOUBLE#
-+ *  #c = s, d#
-+ *  #scalarf = npy_cosf, npy_cos#
-+ */
-+
- NPY_NO_EXPORT void
--@TYPE@_copysign(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
-+@TYPE@_cos(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
- {
--    BINARY_LOOP {
--        const @type@ in1 = *(@type@ *)ip1;
--        const @type@ in2 = *(@type@ *)ip2;
--        *((@type@ *)op1)= npy_copysign@c@(in1, in2);
 +    if(IS_UNARY_CONT(@type@, @type@) &&
 +           dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
 +           DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
@@ -1273,9 +1294,14 @@ index ae3ece7..983dbac 100644
 +            const @type@ in1 = *(@type@ *)ip1;
 +            *(@type@ *)op1 = @scalarf@(in1);
 +	)
-+    }
-+}
-+
+     }
+ }
+
+-NPY_NO_EXPORT void
+-@TYPE@_copysign(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
+-{
+-    BINARY_LOOP {
+-        const @type@ in1 = *(@type@ *)ip1;
 +/**end repeat**/
 +
 +/**begin repeat
@@ -1887,7 +1913,7 @@ index ae3ece7..983dbac 100644
 +		    if( DISJOINT_OR_SAME(op1_shifted, ip1_aligned, j_max, 1) &&
 +			DISJOINT_OR_SAME(op1_shifted, ip2_shifted, j_max, 1) ) {
 +			__assume_aligned(ip1_aligned, 64);
-+			_Pragma("simd")
++			_Pragma("vector");
 +			for(j = 0; j < j_max; j++) {
 +			    op1_shifted[j] = ip1_aligned[j] @OP@ ip2_shifted[j];
 +			}
@@ -2055,7 +2081,7 @@ index ae3ece7..983dbac 100644
 +		    if( DISJOINT_OR_SAME(op1_shifted, ip1_aligned, j_max, 1) &&
 +			DISJOINT_OR_SAME(op1_shifted, ip2_shifted, j_max, 1) ) {
 +			__assume_aligned(ip1_aligned, 64);
-+			_Pragma("simd")
++			_Pragma("vector");
 +			for(j = 0; j < j_max; j++) {
 +			    op1_shifted[j] = ip1_aligned[j] @OP@ ip2_shifted[j];
 +			}
@@ -2223,7 +2249,7 @@ index ae3ece7..983dbac 100644
 +		    if( DISJOINT_OR_SAME(op1_shifted, ip1_aligned, j_max, 1) &&
 +			DISJOINT_OR_SAME(op1_shifted, ip2_shifted, j_max, 1) ) {
 +			__assume_aligned(ip1_aligned, 64);
-+			_Pragma("simd")
++			_Pragma("vector");
 +			for(j = 0; j < j_max; j++) {
 +			    op1_shifted[j] = ip1_aligned[j] @OP@ ip2_shifted[j];
 +			}
@@ -2377,20 +2403,22 @@ index ae3ece7..983dbac 100644
 +            const npy_intp blocked_end = npy_blocked_end(peel, sizeof(@type@), vsize, n);
 +            npy_intp i;
 +
-+	     _Pragma("novector")
++	     _Pragma("novector");
 +            for(i = 0; i < peel; i++) {
 +                op1[i] = ip1[i] @OP@ ip2[i];
 +            }
 +
 +            {
 +                npy_intp j, j_max = blocked_end - peel;
++		j_max &= (~0xf);
++		const npy_intp blocked_end = j_max + peel;
 +                if (j_max > 0) {
 +                    @type@ *ip1_aligned = ip1 + peel, *op1_shifted = op1 + peel, *ip2_shifted = ip2 + peel;
 +
 +		    if( DISJOINT_OR_SAME(op1_shifted, ip1_aligned, j_max, 1) &&
 +			DISJOINT_OR_SAME(op1_shifted, ip2_shifted, j_max, 1) ) {
 +			__assume_aligned(ip1_aligned, 64);
-+			_Pragma("simd")
++			_Pragma("vector");
 +			for(j = 0; j < j_max; j++) {
 +			    op1_shifted[j] = ip1_aligned[j] @OP@ ip2_shifted[j];
 +			}
@@ -2405,7 +2433,7 @@ index ae3ece7..983dbac 100644
 +                }
 +            }
 +
-+	     _Pragma("novector")
++	     _Pragma("novector");
 +            for(; i < n; i++) {
 +                op1[i] = ip1[i] @OP@ ip2[i];
 +            }
@@ -2421,7 +2449,7 @@ index ae3ece7..983dbac 100644
 +        npy_intp i;
 +
 +        const @type@ ip1c = ip1[0];
-+	 _Pragma("novector")
++	 _Pragma("novector");
 +        for(i = 0; i < peel; i++) {
 +            op1[i] = ip1c @OP@ ip2[i];
 +        }
@@ -2440,7 +2468,7 @@ index ae3ece7..983dbac 100644
 +            }
 +        }
 +
-+	 _Pragma("novector")
++	 _Pragma("novector");
 +        for(; i < n; i++) {
 +            op1[i] = ip1c @OP@ ip2[i];
 +        }
@@ -2455,7 +2483,7 @@ index ae3ece7..983dbac 100644
 +        npy_intp i;
 +
 +        const @type@ ip2c = ip2[0];
-+	 _Pragma("novector")
++	 _Pragma("novector");
 +        for(i = 0; i < peel; i++) {
 +            op1[i] = ip1[i] @OP@ ip2c;
 +        }
@@ -2474,7 +2502,7 @@ index ae3ece7..983dbac 100644
 +            }
 +        }
 +
-+	 _Pragma("novector")
++	 _Pragma("novector");
 +        for(; i < n; i++) {
 +            op1[i] = ip1[i] @OP@ ip2c;
 +        }
@@ -2568,12 +2596,10 @@ index ae3ece7..983dbac 100644
 +{
 +    BINARY_LOOP {
 +        const @type@ in1 = *(@type@ *)ip1;
-+        const @type@ in2 = *(@type@ *)ip2;
-+        *((@type@ *)op1)= npy_copysign@c@(in1, in2);
+         const @type@ in2 = *(@type@ *)ip2;
+         *((@type@ *)op1)= npy_copysign@c@(in1, in2);
      }
- }
- 
-@@ -1942,9 +3411,15 @@ NPY_NO_EXPORT void
+@@ -1938,9 +3345,15 @@ NPY_NO_EXPORT void
  NPY_NO_EXPORT void
  @TYPE@_square(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(data))
  {
@@ -2592,7 +2618,7 @@ index ae3ece7..983dbac 100644
          UNARY_LOOP {
              const @type@ in1 = *(@type@ *)ip1;
              *((@type@ *)op1) = in1*in1;
-@@ -1955,10 +3430,15 @@ NPY_NO_EXPORT void
+@@ -1951,10 +3364,15 @@ NPY_NO_EXPORT void
  NPY_NO_EXPORT void
  @TYPE@_reciprocal(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(data))
  {
@@ -2612,7 +2638,7 @@ index ae3ece7..983dbac 100644
          UNARY_LOOP {
              const @type@ in1 = *(@type@ *)ip1;
              *((@type@ *)op1) = 1/in1;
-@@ -1986,7 +3466,15 @@ NPY_NO_EXPORT void
+@@ -1982,7 +3400,15 @@ NPY_NO_EXPORT void
  NPY_NO_EXPORT void
  @TYPE@_absolute(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
@@ -2629,14 +2655,14 @@ index ae3ece7..983dbac 100644
          UNARY_LOOP {
              const @type@ in1 = *(@type@ *)ip1;
              const @type@ tmp = in1 > 0 ? in1 : -in1;
-@@ -2439,9 +3927,18 @@ HALF_ldexp_long(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UN
+@@ -2432,9 +3858,18 @@ HALF_ldexp_long(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UN
   * #ftype = npy_float, npy_double, npy_longdouble#
   * #c = f, , l#
   * #C = F, , L#
 + * #s = s, d, d#
 + * #SUPPORTED_BY_VML = 1, 1, 0#
   */
- 
+
  /* similar to pairwise sum of real floats */
 +#if defined(__ICC) || defined(__INTEL_COMPILER)
 +#ifdef _MSC_VER
@@ -2648,8 +2674,8 @@ index ae3ece7..983dbac 100644
  static void
  pairwise_sum_@TYPE@(@ftype@ *rr, @ftype@ * ri, char * a, npy_intp n,
                      npy_intp stride)
-@@ -2478,14 +3975,14 @@ pairwise_sum_@TYPE@(@ftype@ *rr, @ftype@ * ri, char * a, npy_intp n,
- 
+@@ -2471,14 +3906,14 @@ pairwise_sum_@TYPE@(@ftype@ *rr, @ftype@ * ri, char * a, npy_intp n,
+
          for (i = 8; i < n - (n % 8); i += 8) {
              /* small blocksizes seems to mess with hardware prefetch */
 -            NPY_PREFETCH(a + (i + 512/(npy_intp)sizeof(@ftype@))*stride, 0, 3);
@@ -2667,8 +2693,8 @@ index ae3ece7..983dbac 100644
 +	    r[6] += *((@ftype@ *)(a + (i + 6) * stride));
              r[7] += *((@ftype@ *)(a + (i + 6) * stride + sizeof(@ftype@)));
          }
- 
-@@ -2742,10 +4239,30 @@ NPY_NO_EXPORT void
+
+@@ -2735,10 +4170,30 @@ NPY_NO_EXPORT void
  NPY_NO_EXPORT void
  @TYPE@_absolute(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
@@ -2702,20 +2728,20 @@ index ae3ece7..983dbac 100644
 +        feclearexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID);
      }
  }
- 
-@@ -2771,6 +4288,7 @@ NPY_NO_EXPORT void
+
+@@ -2764,6 +4219,7 @@ NPY_NO_EXPORT void
                              (CEQ(in1r, in1i, 0.0, 0.0) ?  0 : NPY_NAN@C@));
          ((@ftype@ *)op1)[1] = 0;
      }
 +    feclearexcept(FE_INVALID);
  }
- 
+
  /**begin repeat1
 diff --git a/numpy/core/src/umath/loops.h.src b/numpy/core/src/umath/loops.h.src
-index 9b63273..e939c45 100644
+index 7f05a693a0..8079512b34 100644
 --- a/numpy/core/src/umath/loops.h.src
 +++ b/numpy/core/src/umath/loops.h.src
-@@ -159,8 +159,16 @@ NPY_NO_EXPORT void
+@@ -173,8 +173,16 @@ NPY_NO_EXPORT void
  /**begin repeat
   *  #TYPE = FLOAT, DOUBLE#
   */
@@ -2731,8 +2757,5 @@ index 9b63273..e939c45 100644
 +/**end repeat1**/
 +
  /**end repeat**/
- 
- /**begin repeat
--- 
-2.20.1
 
+ /**begin repeat
