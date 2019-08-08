@@ -32,8 +32,7 @@ source:
       # - 0021-intel_distibut ion.patch
       # - 0022-intel_setup_add_whl_deps.patch
       # patch up MKL patches
-      # - 0012-Remove-ICC-specific-flags.patch
-      # - 0013-Remove-np.invsqrt.patch
+      - 0013-Remove-np.invsqrt.patch
       # - 0014-Rewrite-inlining.patch
       - 0015-Fixes-from-Intel-Distribution.patch
       - 0016-define-__THRESHOLD.patch
