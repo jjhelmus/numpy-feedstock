@@ -245,9 +245,9 @@ index fb418aadc..f6ab39848 100644
 --- a/numpy/core/code_generators/ufunc_docstrings.py
 +++ b/numpy/core/code_generators/ufunc_docstrings.py
 @@ -1118,6 +1118,40 @@ add_newdoc('numpy.core.umath', 'equal',
- 
+
      """)
- 
+
 +add_newdoc('numpy.core.umath', 'erf',
 +    """
 +    Calculate the error function of all elements in the input array.
@@ -288,7 +288,7 @@ index fb418aadc..f6ab39848 100644
 @@ -3598,7 +3632,6 @@ add_newdoc('numpy.core.umath', 'cbrt',
          If `out` was provided, `y` is a reference to it.
          $OUT_SCALAR_1
- 
+
 -
      Examples
      --------
@@ -298,7 +298,7 @@ index 6a78ff3c2..6f4bf95e3 100644
 --- a/numpy/core/include/numpy/npy_math.h
 +++ b/numpy/core/include/numpy/npy_math.h
 @@ -178,6 +178,7 @@ NPY_INPLACE double npy_atan(double x);
- 
+
  NPY_INPLACE double npy_log(double x);
  NPY_INPLACE double npy_log10(double x);
 +NPY_INPLACE double npy_erf(double x);
@@ -324,7 +324,7 @@ index 6a78ff3c2..6f4bf95e3 100644
 @@ -479,6 +482,7 @@ static NPY_INLINE npy_longdouble npy_cimagl(npy_clongdouble z)
  double npy_cabs(npy_cdouble z);
  double npy_carg(npy_cdouble z);
- 
+
 +npy_cdouble npy_cerf(npy_cdouble z);
  npy_cdouble npy_cexp(npy_cdouble z);
  npy_cdouble npy_clog(npy_cdouble z);
@@ -332,7 +332,7 @@ index 6a78ff3c2..6f4bf95e3 100644
 @@ -507,6 +511,7 @@ npy_cdouble npy_catanh(npy_cdouble z);
  float npy_cabsf(npy_cfloat z);
  float npy_cargf(npy_cfloat z);
- 
+
 +npy_cfloat npy_cerff(npy_cfloat z);
  npy_cfloat npy_cexpf(npy_cfloat z);
  npy_cfloat npy_clogf(npy_cfloat z);
@@ -340,7 +340,7 @@ index 6a78ff3c2..6f4bf95e3 100644
 @@ -536,6 +541,7 @@ npy_cfloat npy_catanhf(npy_cfloat z);
  npy_longdouble npy_cabsl(npy_clongdouble z);
  npy_longdouble npy_cargl(npy_clongdouble z);
- 
+
 +npy_clongdouble npy_cerfl(npy_clongdouble z);
  npy_clongdouble npy_cexpl(npy_clongdouble z);
  npy_clongdouble npy_clogl(npy_clongdouble z);
@@ -351,7 +351,7 @@ index 338502791..c73e9c4a7 100644
 +++ b/numpy/core/setup.py
 @@ -10,6 +10,7 @@ import textwrap
  from os.path import join
- 
+
  from numpy.distutils import log
 +from numpy.distutils.system_info import get_info
  from distutils.dep_util import newer
@@ -371,13 +371,13 @@ index 338502791..c73e9c4a7 100644
              # dependencies
 -            ] + npysort_sources + npymath_sources
 +            ] + npysort_sources
- 
+
      multiarray_src = [
              join('src', 'multiarray', 'alloc.c'),
 @@ -893,13 +893,14 @@ def configuration(parent_package='',top_path=None):
                                                   generate_umath.__file__))
          return []
- 
+
 +    loops_src = [join('src', 'umath', 'loops.c.src'),
 +                 join('src', 'umath', 'loops.h.src'),]
 +
@@ -394,7 +394,7 @@ index 338502791..c73e9c4a7 100644
 @@ -924,6 +925,20 @@ def configuration(parent_package='',top_path=None):
              join(codegen_dir, 'generate_ufunc_api.py'),
              ]
- 
+
 +    if platform.system() == "Windows":
 +        eca = ['/fp:fast=2', '/Qimf-precision=high', '/Qprec-sqrt', '/Qstd=c99']
 +        if sys.version_info < (3, 0):
@@ -422,7 +422,7 @@ index 338502791..c73e9c4a7 100644
 -                         libraries=['npymath', 'npysort'],
 +                         libraries=['loops', 'npymath', 'npysort'],
                           extra_info=extra_info)
- 
+
      #######################################################################
 diff --git a/numpy/core/setup_common.py b/numpy/core/setup_common.py
 index 307fab334..f0980e5a9 100644
@@ -435,7 +435,7 @@ index 307fab334..f0980e5a9 100644
 -        "floor", "ceil", "sqrt", "log10", "log", "exp", "asin",
 +        "floor", "ceil", "sqrt", "log10", "log", "erf", "exp", "asin",
          "acos", "atan", "fmod", 'modf', 'frexp', 'ldexp']
- 
+
  # Standard functions which may not be available and for which we have a
 @@ -201,7 +201,7 @@ OPTIONAL_STDFUNCS_MAYBE = [
  # C99 functions: float and long double versions
@@ -454,14 +454,14 @@ index 307fab334..f0980e5a9 100644
 +    "catanh", "ccos", "ccosh", "cexp", "cimag", "clog", "cerf", "conj", "cpow",
      "cproj", "creal", "csin", "csinh", "csqrt", "ctan", "ctanh"
      ]
- 
+
 @@ -245,9 +245,9 @@ def check_long_double_representation(cmd):
      # Disable multi-file interprocedural optimization in the Intel compiler on Linux
      # which generates intermediary object files and prevents checking the
      # float representation.
--    elif (sys.platform != "win32" 
--            and cmd.compiler.compiler_type.startswith('intel') 
--            and '-ipo' in cmd.compiler.cc_exe):        
+-    elif (sys.platform != "win32"
+-            and cmd.compiler.compiler_type.startswith('intel')
+-            and '-ipo' in cmd.compiler.cc_exe):
 +    elif (sys.platform != "win32"
 +            and cmd.compiler.compiler_type.startswith('intel')
 +            and '-ipo' in cmd.compiler.cc_exe):
@@ -475,7 +475,7 @@ index dad381232..851425c27 100644
 @@ -369,6 +369,15 @@ npy_clog@c@(@ctype@ z)
  }
  #endif
- 
+
 +#ifndef HAVE_CERF@C@
 +
 +@ctype@
@@ -486,11 +486,11 @@ index dad381232..851425c27 100644
 +#endif
 +
  #ifndef HAVE_CSQRT@C@
- 
+
  /* We risk spurious overflow for components >= DBL_MAX / (1 + sqrt(2)). */
 @@ -1784,9 +1793,9 @@ npy_@kind@@c@(@ctype@ z)
  /**end repeat1**/
- 
+
  /**begin repeat1
 - * #kind = cexp,clog,csqrt,ccos,csin,ctan,ccosh,csinh,ctanh,
 + * #kind = cerf,cexp,clog,csqrt,ccos,csin,ctan,ccosh,csinh,ctanh,
@@ -505,7 +505,7 @@ index fa820baac..737758388 100644
 --- a/numpy/core/src/npymath/npy_math_internal.h.src
 +++ b/numpy/core/src/npymath/npy_math_internal.h.src
 @@ -380,9 +380,9 @@ NPY_INPLACE double npy_log2(double x)
- 
+
  /**begin repeat1
   * #kind = sin,cos,tan,sinh,cosh,tanh,fabs,floor,ceil,rint,trunc,sqrt,log10,
 - *         log,exp,expm1,asin,acos,atan,asinh,acosh,atanh,log1p,exp2,log2#
@@ -514,7 +514,7 @@ index fa820baac..737758388 100644
 - *         LOG,EXP,EXPM1,ASIN,ACOS,ATAN,ASINH,ACOSH,ATANH,LOG1P,EXP2,LOG2#
 + *         LOG,ERF,EXP,EXPM1,ASIN,ACOS,ATAN,ASINH,ACOSH,ATANH,LOG1P,EXP2,LOG2#
   */
- 
+
  #ifdef @kind@@c@
 @@ -459,9 +459,9 @@ NPY_INPLACE @type@ npy_frexp@c@(@type@ x, int* exp)
   */
@@ -535,7 +535,7 @@ index ae6d69a3e..facf1b408 100644
 @@ -34,6 +34,21 @@
      npy_intp i;\
      for(i = 0; i < n; i++, ip1 += is1, op1 += os1)
- 
+
 +#define UNARY_LOOP_VECTORIZED\
 +    char *ip1 = args[0], *op1 = args[1];\
 +    npy_intp is1 = steps[0], os1 = steps[1];\
@@ -561,7 +561,7 @@ index c2732f925..d5eeaedfb 100644
 @@ -337,6 +337,13 @@ nc_log1p@c@(@ctype@ *x, @ctype@ *r)
      return;
  }
- 
+
 +static void
 +nc_erf@c@(@ctype@ *x, @ctype@ *r)
 +{
@@ -585,9 +585,9 @@ index f84d74efe..2b6a3a11f 100644
  #define _MULTIARRAYMODULE
  #define NPY_NO_DEPRECATED_API NPY_API_VERSION
 @@ -20,14 +21,6 @@
- 
+
  #include <string.h> /* for memchr */
- 
+
 -/*
 - * cutoff blocksize for pairwise summation
 - * decreasing it decreases errors slightly as more pairs are summed but
@@ -596,13 +596,13 @@ index f84d74efe..2b6a3a11f 100644
 - */
 -#define PW_BLOCKSIZE    128
 -
- 
+
  /*
   * largest simd vector size in bytes numpy supports
 @@ -38,6 +31,82 @@
  #define NPY_MAX_SIMD_SIZE 1024
  #endif
- 
+
 +/*
 + * cutoff blocksize for pairwise summation
 + * decreasing it decreases errors slightly as more pairs are summed but
@@ -685,9 +685,9 @@ index f84d74efe..2b6a3a11f 100644
 @@ -49,6 +118,7 @@
  /** Provides the various *_LOOP macros */
  #include "fast_loop_macros.h"
- 
+
 +#include <stdio.h>
- 
+
  /******************************************************************************
   **                          GENERIC FLOAT LOOPS                             **
 @@ -645,14 +715,9 @@ BOOL_@kind@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED
@@ -711,7 +711,7 @@ index f84d74efe..2b6a3a11f 100644
 @@ -836,6 +901,9 @@ NPY_NO_EXPORT NPY_GCC_OPT_3 @ATTR@ void
   * #OP =  >, <#
   **/
- 
+
 +#if defined(__ICC) || defined(__INTEL_COMPILER)
 +#pragma intel optimization_level 2
 +#endif
@@ -725,7 +725,7 @@ index f84d74efe..2b6a3a11f 100644
 + *  #c = s, d#
   *  #scalarf = npy_sqrtf, npy_sqrt#
   */
- 
+
  NPY_NO_EXPORT void
  @TYPE@_sqrt(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
  {
@@ -746,9 +746,9 @@ index f84d74efe..2b6a3a11f 100644
 +	)
      }
  }
- 
+
  /**end repeat**/
- 
+
  /**begin repeat
 - *  #func = exp, log#
 - *  #scalarf = npy_expf, npy_logf#
@@ -759,7 +759,7 @@ index f84d74efe..2b6a3a11f 100644
 + *  #c = s, d#
 + *  #scalarf = npy_expf, npy_exp#
   */
- 
+
 -NPY_NO_EXPORT NPY_GCC_OPT_3 void
 -FLOAT_@func@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(data))
 +NPY_NO_EXPORT void
@@ -791,9 +791,9 @@ index f84d74efe..2b6a3a11f 100644
 +        feclearexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID);
      }
  }
- 
+
  /**end repeat**/
- 
+
  /**begin repeat
 - * #isa = avx512f, avx2#
 - * #ISA = AVX512F, AVX2#
@@ -809,7 +809,7 @@ index f84d74efe..2b6a3a11f 100644
 + *  #c = s, d#
 + *  #scalarf = npy_exp2f, npy_exp2#
   */
- 
+
 -NPY_NO_EXPORT NPY_GCC_OPT_3 void
 -FLOAT_@func@_@isa@(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(data))
 +/* TODO: Use VML */
@@ -839,10 +839,10 @@ index f84d74efe..2b6a3a11f 100644
 +        *(@type@ *)op1 = @scalarf@(in1);
 +    )
  }
- 
+
 -/**end repeat1**/
  /**end repeat**/
- 
+
  /**begin repeat
   * Float types
 - *  #type = npy_float, npy_double, npy_longdouble, npy_float#
@@ -856,7 +856,7 @@ index f84d74efe..2b6a3a11f 100644
 + *  #c = s, d#
 + *  #scalarf = npy_expm1f, npy_expm1#
   */
- 
+
 -/*
 - * Pairwise summation, rounding error O(lg n) instead of O(n).
 - * The recursion depth is O(lg n) as well.
@@ -919,12 +919,12 @@ index f84d74efe..2b6a3a11f 100644
 -            r[7] += @trf@(*((@dtype@ *)(a + (i + 7) * stride)));
 -        }
 +}
- 
+
 -        /* accumulate now to avoid stack spills for single peel loop */
 -        res = ((r[0] + r[1]) + (r[2] + r[3])) +
 -              ((r[4] + r[5]) + (r[6] + r[7]));
 +/**end repeat**/
- 
+
 -        /* do non multiple of 8 rest */
 -        for (; i < n; i++) {
 -            res += @trf@(*((@dtype@ *)(a + i * stride)));
@@ -941,7 +941,7 @@ index f84d74efe..2b6a3a11f 100644
 + *  #c = s, d#
 + *  #scalarf = npy_erff, npy_erf#
 + */
- 
+
 -        n2 -= n2 % 8;
 -        return pairwise_sum_@TYPE@(a, n2, stride) +
 -               pairwise_sum_@TYPE@(a + n2 * stride, n - n2, stride);
@@ -962,9 +962,9 @@ index f84d74efe..2b6a3a11f 100644
 +	)
      }
  }
- 
+
 @@ -1724,110 +1785,1428 @@ pairwise_sum_@TYPE@(char *a, npy_intp n, npy_intp stride)
- 
+
  /**begin repeat
   * Float types
 - *  #type = npy_float, npy_double, npy_longdouble#
@@ -976,7 +976,7 @@ index f84d74efe..2b6a3a11f 100644
 + *  #c = s, d#
 + *  #scalarf = npy_logf, npy_log#
   */
- 
+
 -/**begin repeat1
 - * Arithmetic
 - * # kind = add, subtract, multiply, divide#
@@ -1020,7 +1020,7 @@ index f84d74efe..2b6a3a11f 100644
      }
  }
 -/**end repeat1**/
- 
+
 -/**begin repeat1
 - * #kind = equal, not_equal, less, less_equal, greater, greater_equal,
 - *        logical_and, logical_or#
@@ -1065,7 +1065,7 @@ index f84d74efe..2b6a3a11f 100644
 + *  #c = s, d#
 + *  #scalarf = npy_log10f, npy_log10#
 + */
- 
+
  NPY_NO_EXPORT void
 -@TYPE@_logical_xor(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
 +@TYPE@_log10(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
@@ -1088,7 +1088,7 @@ index f84d74efe..2b6a3a11f 100644
 +	)
      }
  }
- 
+
 +/**end repeat**/
 +
 +/**begin repeat
@@ -1120,7 +1120,7 @@ index f84d74efe..2b6a3a11f 100644
 +	)
      }
  }
- 
+
 -/**begin repeat1
 - * #kind = isnan, isinf, isfinite, signbit#
 - * #func = npy_isnan, npy_isinf, npy_isfinite, npy_signbit#
@@ -1169,7 +1169,7 @@ index f84d74efe..2b6a3a11f 100644
 + *  #c = s, d#
 + *  #scalarf = npy_sinf, npy_sin#
 + */
- 
+
  NPY_NO_EXPORT void
 -@TYPE@_spacing(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
 +@TYPE@_sin(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
@@ -1191,7 +1191,7 @@ index f84d74efe..2b6a3a11f 100644
 +	)
      }
  }
- 
+
 -NPY_NO_EXPORT void
 -@TYPE@_copysign(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
 -{
@@ -2525,7 +2525,7 @@ index f84d74efe..2b6a3a11f 100644
 + * #s = s, d, d#
 + * #SUPPORTED_BY_VML = 1, 1, 0#
   */
- 
+
  /* similar to pairwise sum of real floats */
 +#if defined(__ICC) || defined(__INTEL_COMPILER)
 +#ifdef _MSC_VER
@@ -2538,7 +2538,7 @@ index f84d74efe..2b6a3a11f 100644
  pairwise_sum_@TYPE@(@ftype@ *rr, @ftype@ * ri, char * a, npy_intp n,
                      npy_intp stride)
 @@ -2471,14 +3878,14 @@ pairwise_sum_@TYPE@(@ftype@ *rr, @ftype@ * ri, char * a, npy_intp n,
- 
+
          for (i = 8; i < n - (n % 8); i += 8) {
              /* small blocksizes seems to mess with hardware prefetch */
 -            NPY_PREFETCH(a + (i + 512/(npy_intp)sizeof(@ftype@))*stride, 0, 3);
@@ -2556,7 +2556,7 @@ index f84d74efe..2b6a3a11f 100644
 +	    r[6] += *((@ftype@ *)(a + (i + 6) * stride));
              r[7] += *((@ftype@ *)(a + (i + 6) * stride + sizeof(@ftype@)));
          }
- 
+
 @@ -2735,10 +4142,30 @@ NPY_NO_EXPORT void
  NPY_NO_EXPORT void
  @TYPE@_absolute(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
@@ -2591,14 +2591,14 @@ index f84d74efe..2b6a3a11f 100644
 +        feclearexcept(FE_DIVBYZERO | FE_OVERFLOW | FE_UNDERFLOW | FE_INVALID);
      }
  }
- 
+
 @@ -2764,6 +4191,7 @@ NPY_NO_EXPORT void
                              (CEQ(in1r, in1i, 0.0, 0.0) ?  0 : NPY_NAN@C@));
          ((@ftype@ *)op1)[1] = 0;
      }
 +    feclearexcept(FE_INVALID);
  }
- 
+
  /**begin repeat1
 diff --git a/numpy/core/src/umath/loops.h.src b/numpy/core/src/umath/loops.h.src
 index 7f05a693a..3f8b6c729 100644
@@ -2620,8 +2620,7 @@ index 7f05a693a..3f8b6c729 100644
 +/**end repeat1**/
 +
  /**end repeat**/
- 
- /**begin repeat
--- 
-2.20.1
 
+ /**begin repeat
+--
+2.20.1
