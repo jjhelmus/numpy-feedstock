@@ -1,3 +1,20 @@
+From 53a3f5892397904961797cb787bb7eb31fb4b063 Mon Sep 17 00:00:00 2001
+From: Sophia Castellarin <scastellarin@anaconda.com>
+Date: Fri, 9 Aug 2019 08:51:54 -0500
+Subject: [PATCH] Remove np.invsqt
+
+---
+ numpy/core/code_generators/generate_umath.py  |  9 ------
+ .../core/code_generators/ufunc_docstrings.py  | 28 -------------------
+ numpy/core/include/numpy/npy_math.h           |  6 ----
+ numpy/core/setup_common.py                    |  8 +++---
+ numpy/core/src/npymath/npy_math_complex.c.src | 13 ++-------
+ .../core/src/npymath/npy_math_internal.h.src  | 17 ++---------
+ numpy/core/src/umath/funcs.inc.src            |  7 -----
+ numpy/core/src/umath/loops.c.src              | 28 -------------------
+ numpy/core/src/umath/loops.h.src              |  2 +-
+ 9 files changed, 9 insertions(+), 109 deletions(-)
+
 diff --git a/numpy/core/code_generators/generate_umath.py b/numpy/core/code_generators/generate_umath.py
 index 82550ffb8..1af1b3320 100644
 --- a/numpy/core/code_generators/generate_umath.py
@@ -58,74 +75,10 @@ index 19605a069..f6ab39848 100644
      """
      Return the cube-root of an array, element-wise.
 diff --git a/numpy/core/include/numpy/npy_math.h b/numpy/core/include/numpy/npy_math.h
-index 979dfd0db..97dc90f35 100644
+index 72d95fa4c..6f4bf95e3 100644
 --- a/numpy/core/include/numpy/npy_math.h
 +++ b/numpy/core/include/numpy/npy_math.h
-@@ -113,37 +113,37 @@ NPY_INLINE static float __npy_nzerof(void)
- #define NPY_SQRT2l    1.414213562373095048801688724209698079L /* sqrt(2) */
- #define NPY_SQRT1_2l  0.707106781186547524400844362104849039L /* 1/sqrt(2) */
-
--/*
-- * Constants used in vector implementation of exp(x)
-+/*
-+ * Constants used in vector implementation of exp(x)
-  */
- #define NPY_RINT_CVT_MAGICf 0x1.800000p+23f
- #define NPY_CODY_WAITE_LOGE_2_HIGHf -6.93145752e-1f
- #define NPY_CODY_WAITE_LOGE_2_LOWf -1.42860677e-6f
--#define NPY_COEFF_P0_EXPf 9.999999999980870924916e-01f
--#define NPY_COEFF_P1_EXPf 7.257664613233124478488e-01f
--#define NPY_COEFF_P2_EXPf 2.473615434895520810817e-01f
--#define NPY_COEFF_P3_EXPf 5.114512081637298353406e-02f
--#define NPY_COEFF_P4_EXPf 6.757896990527504603057e-03f
--#define NPY_COEFF_P5_EXPf 5.082762527590693718096e-04f
--#define NPY_COEFF_Q0_EXPf 1.000000000000000000000e+00f
--#define NPY_COEFF_Q1_EXPf -2.742335390411667452936e-01f
--#define NPY_COEFF_Q2_EXPf 2.159509375685829852307e-02f
--
--/*
-- * Constants used in vector implementation of log(x)
-+#define NPY_COEFF_P0_EXPf 9.999999999980870924916e-01f
-+#define NPY_COEFF_P1_EXPf 7.257664613233124478488e-01f
-+#define NPY_COEFF_P2_EXPf 2.473615434895520810817e-01f
-+#define NPY_COEFF_P3_EXPf 5.114512081637298353406e-02f
-+#define NPY_COEFF_P4_EXPf 6.757896990527504603057e-03f
-+#define NPY_COEFF_P5_EXPf 5.082762527590693718096e-04f
-+#define NPY_COEFF_Q0_EXPf 1.000000000000000000000e+00f
-+#define NPY_COEFF_Q1_EXPf -2.742335390411667452936e-01f
-+#define NPY_COEFF_Q2_EXPf 2.159509375685829852307e-02f
-+
-+/*
-+ * Constants used in vector implementation of log(x)
-  */
--#define NPY_COEFF_P0_LOGf 0.000000000000000000000e+00f
--#define NPY_COEFF_P1_LOGf 9.999999999999998702752e-01f
--#define NPY_COEFF_P2_LOGf 2.112677543073053063722e+00f
--#define NPY_COEFF_P3_LOGf 1.480000633576506585156e+00f
--#define NPY_COEFF_P4_LOGf 3.808837741388407920751e-01f
--#define NPY_COEFF_P5_LOGf 2.589979117907922693523e-02f
--#define NPY_COEFF_Q0_LOGf 1.000000000000000000000e+00f
--#define NPY_COEFF_Q1_LOGf 2.612677543073109236779e+00f
--#define NPY_COEFF_Q2_LOGf 2.453006071784736363091e+00f
--#define NPY_COEFF_Q3_LOGf 9.864942958519418960339e-01f
--#define NPY_COEFF_Q4_LOGf 1.546476374983906719538e-01f
--#define NPY_COEFF_Q5_LOGf 5.875095403124574342950e-03f
-+#define NPY_COEFF_P0_LOGf 0.000000000000000000000e+00f
-+#define NPY_COEFF_P1_LOGf 9.999999999999998702752e-01f
-+#define NPY_COEFF_P2_LOGf 2.112677543073053063722e+00f
-+#define NPY_COEFF_P3_LOGf 1.480000633576506585156e+00f
-+#define NPY_COEFF_P4_LOGf 3.808837741388407920751e-01f
-+#define NPY_COEFF_P5_LOGf 2.589979117907922693523e-02f
-+#define NPY_COEFF_Q0_LOGf 1.000000000000000000000e+00f
-+#define NPY_COEFF_Q1_LOGf 2.612677543073109236779e+00f
-+#define NPY_COEFF_Q2_LOGf 2.453006071784736363091e+00f
-+#define NPY_COEFF_Q3_LOGf 9.864942958519418960339e-01f
-+#define NPY_COEFF_Q4_LOGf 1.546476374983906719538e-01f
-+#define NPY_COEFF_Q5_LOGf 5.875095403124574342950e-03f
-
- /*
-  * C99 double math funcs
-@@ -164,7 +164,6 @@ NPY_INPLACE double npy_log10(double x);
+@@ -181,7 +181,6 @@ NPY_INPLACE double npy_log10(double x);
  NPY_INPLACE double npy_erf(double x);
  NPY_INPLACE double npy_exp(double x);
  NPY_INPLACE double npy_sqrt(double x);
@@ -133,7 +86,7 @@ index 979dfd0db..97dc90f35 100644
  NPY_INPLACE double npy_cbrt(double x);
 
  NPY_INPLACE double npy_fabs(double x);
-@@ -273,7 +272,6 @@ NPY_INPLACE float npy_ceilf(float x);
+@@ -288,7 +287,6 @@ NPY_INPLACE float npy_ceilf(float x);
  NPY_INPLACE float npy_rintf(float x);
  NPY_INPLACE float npy_truncf(float x);
  NPY_INPLACE float npy_sqrtf(float x);
@@ -141,7 +94,15 @@ index 979dfd0db..97dc90f35 100644
  NPY_INPLACE float npy_cbrtf(float x);
  NPY_INPLACE float npy_log10f(float x);
  NPY_INPLACE float npy_logf(float x);
-@@ -476,7 +474,6 @@ npy_cdouble npy_clog(npy_cdouble z);
+@@ -333,7 +331,6 @@ NPY_INPLACE npy_longdouble npy_ceill(npy_longdouble x);
+ NPY_INPLACE npy_longdouble npy_rintl(npy_longdouble x);
+ NPY_INPLACE npy_longdouble npy_truncl(npy_longdouble x);
+ NPY_INPLACE npy_longdouble npy_sqrtl(npy_longdouble x);
+-NPY_INPLACE npy_longdouble npy_invsqrtl(npy_longdouble x);
+ NPY_INPLACE npy_longdouble npy_cbrtl(npy_longdouble x);
+ NPY_INPLACE npy_longdouble npy_log10l(npy_longdouble x);
+ NPY_INPLACE npy_longdouble npy_logl(npy_longdouble x);
+@@ -491,7 +488,6 @@ npy_cdouble npy_clog(npy_cdouble z);
  npy_cdouble npy_cpow(npy_cdouble x, npy_cdouble y);
 
  npy_cdouble npy_csqrt(npy_cdouble z);
@@ -149,7 +110,7 @@ index 979dfd0db..97dc90f35 100644
 
  npy_cdouble npy_ccos(npy_cdouble z);
  npy_cdouble npy_csin(npy_cdouble z);
-@@ -506,7 +503,6 @@ npy_cfloat npy_clogf(npy_cfloat z);
+@@ -521,7 +517,6 @@ npy_cfloat npy_clogf(npy_cfloat z);
  npy_cfloat npy_cpowf(npy_cfloat x, npy_cfloat y);
 
  npy_cfloat npy_csqrtf(npy_cfloat z);
@@ -157,7 +118,7 @@ index 979dfd0db..97dc90f35 100644
 
  npy_cfloat npy_ccosf(npy_cfloat z);
  npy_cfloat npy_csinf(npy_cfloat z);
-@@ -537,7 +533,6 @@ npy_clongdouble npy_clogl(npy_clongdouble z);
+@@ -552,7 +547,6 @@ npy_clongdouble npy_clogl(npy_clongdouble z);
  npy_clongdouble npy_cpowl(npy_clongdouble x, npy_clongdouble y);
 
  npy_clongdouble npy_csqrtl(npy_clongdouble z);
@@ -192,7 +153,7 @@ index f7f509765..f0980e5a9 100644
          cmd.compiler.set_executables(
              compiler=newcompiler,
 diff --git a/numpy/core/src/npymath/npy_math_complex.c.src b/numpy/core/src/npymath/npy_math_complex.c.src
-index da0d4af17..208d001e4 100644
+index 3f6482531..851425c27 100644
 --- a/numpy/core/src/npymath/npy_math_complex.c.src
 +++ b/numpy/core/src/npymath/npy_math_complex.c.src
 @@ -455,15 +455,6 @@ npy_csqrt@c@(@ctype@ z)
@@ -211,7 +172,7 @@ index da0d4af17..208d001e4 100644
  /*
   * Always use this function because of the multiplication for small
   * integer powers, but in the body use cpow if it is available.
-@@ -1822,9 +1813,9 @@ npy_@kind@@c@(@ctype@ z)
+@@ -1802,9 +1793,9 @@ npy_@kind@@c@(@ctype@ z)
  /**end repeat1**/
 
  /**begin repeat1
@@ -224,7 +185,7 @@ index da0d4af17..208d001e4 100644
   */
  #ifdef HAVE_@KIND@@C@
 diff --git a/numpy/core/src/npymath/npy_math_internal.h.src b/numpy/core/src/npymath/npy_math_internal.h.src
-index 2ced6a7d1..edcc6d7f2 100644
+index 2ced6a7d1..737758388 100644
 --- a/numpy/core/src/npymath/npy_math_internal.h.src
 +++ b/numpy/core/src/npymath/npy_math_internal.h.src
 @@ -379,9 +379,9 @@ NPY_INPLACE double npy_log2(double x)
@@ -239,12 +200,10 @@ index 2ced6a7d1..edcc6d7f2 100644
   *         LOG,ERF,EXP,EXPM1,ASIN,ACOS,ATAN,ASINH,ACOSH,ATANH,LOG1P,EXP2,LOG2#
   */
 
-@@ -470,21 +470,6 @@ NPY_INPLACE @type@ npy_@kind@@c@(@type@ x)
- }
- #endif
+@@ -472,19 +472,6 @@ NPY_INPLACE @type@ npy_@kind@@c@(@type@ x)
 
--/**end repeat1**/
--
+ /**end repeat1**/
+
 -/**begin repeat1
 - * #kind = invsqrt#
 - * #KIND = INVSQRT#
@@ -280,13 +239,21 @@ index b04c63e47..d5eeaedfb 100644
  nc_rint@c@(@ctype@ *x, @ctype@ *r)
  {
 diff --git a/numpy/core/src/umath/loops.c.src b/numpy/core/src/umath/loops.c.src
-index 739f71157..a65623f83 100644
+index a121472fe..2b6a3a11f 100644
 --- a/numpy/core/src/umath/loops.c.src
 +++ b/numpy/core/src/umath/loops.c.src
-@@ -1675,23 +1675,23 @@ NPY_NO_EXPORT void
-  *  #scalarf = npy_invsqrtf, npy_invsqrt#
-  */
+@@ -1667,34 +1667,6 @@ NPY_NO_EXPORT void
 
+ /**end repeat**/
+
+-/**begin repeat
+- * Float types
+- *  #type = npy_float, npy_double#
+- *  #TYPE = FLOAT, DOUBLE#
+- *  #c = s, d#
+- *  #scalarf = npy_invsqrtf, npy_invsqrt#
+- */
+-
 -NPY_NO_EXPORT void
 -@TYPE@_invsqrt(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
 -{
@@ -304,26 +271,12 @@ index 739f71157..a65623f83 100644
 -	)
 -    }
 -}
-+// NPY_NO_EXPORT void
-+// @TYPE@_invsqrt(char **args, npy_intp *dimensions, npy_intp *steps, void *NPY_UNUSED(func))
-+// {
-+//     if(IS_UNARY_CONT(@type@, @type@) &&
-+//            dimensions[0] > VML_TRANSCEDENTAL_THRESHOLD &&
-+//            DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@)) ) {
-+//         CHUNKED_VML_CALL2(v@c@InvSqrt, dimensions[0], @type@, args[0], args[1]);
-+//         /* v@c@InvSqrt(dimensions[0], (@type@*) args[0], (@type@*) args[1]); */
-+//     } else {
-+//         UNARY_LOOP_DISPATCH(
-+//             DISJOINT_OR_SAME(args[0], args[1], dimensions[0], sizeof(@type@))
-+//             ,
-+//             const @type@ in1 = *(@type@ *)ip1;
-+//             *(@type@ *)op1 = @scalarf@(in1);
-+// 	)
-+//     }
-+// }
-
- /**end repeat**/
-
+-
+-/**end repeat**/
+-
+ /**begin repeat
+  * Float types
+  *  #type = npy_float, npy_double#
 diff --git a/numpy/core/src/umath/loops.h.src b/numpy/core/src/umath/loops.h.src
 index 8079512b3..3f8b6c729 100644
 --- a/numpy/core/src/umath/loops.h.src
@@ -337,3 +290,5 @@ index 8079512b3..3f8b6c729 100644
   *         exp,expm1,arcsin,arccos,arctan,arcsinh,arccosh,arctanh,log1p,exp2,log2,cbrt#
   */
  NPY_NO_EXPORT void
+--
+2.20.1
