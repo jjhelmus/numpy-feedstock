@@ -26,8 +26,7 @@ source:
       # patch up MKL patches
       - 0013-Remove-np.invsqrt.patch
       - 0014-remove-specific-compiler-flags.patch
-      - 0015-remove-assume_aligned-symbol.patch
-      - 0015-Fixes-from-Intel-Distribution.patch
+      - 0015-remove-assume_aligned-symbol.patch 
       - 0016-define-__THRESHOLD.patch
       - 0018-filter-out-warnings-when-importing-mkl_fft.patch
       {%- endif %}

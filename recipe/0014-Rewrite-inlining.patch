@@ -43,7 +43,7 @@ index 81e9e33..37eb172 100644
 @@ -25,70 +9,9 @@ static int is_tbb_enabled(void) {
      return TBB_ENABLED;
  }
- 
+
 -static NPY_INLINE void call_dcopy_chunked(size_t size, double* src, double* dest) {
 -   while (size > MKL_INT_MAX) {
 -       cblas_dcopy(MKL_INT_MAX, src , __NULL_STRIDE, dest, __UNIT_STRIDE);
@@ -59,7 +59,7 @@ index 81e9e33..37eb172 100644
 -   }
 -}
 -
--void * _aligned_alloc(size_t size) {
+- {
 -    /* Only available for Linux and OSX (has been explicitly disabled on Windows : see aligned_alloc.h)
 -     * With Windows, we would run into composability issues with modules like h5py which allocate
 -     * memory using libc functions in another library, like hdf5 for instance
@@ -105,7 +105,7 @@ index 81e9e33..37eb172 100644
 -    return data;
 -}
 -#endif
- 
+
  #if PY_VERSION_HEX >= 0x03040000
 -static int is_tracemalloc_enabled(void) {
 +int is_tracemalloc_enabled(void) {
@@ -115,7 +115,7 @@ index 81e9e33..37eb172 100644
 @@ -97,53 +20,12 @@ static int is_tracemalloc_enabled(void) {
  }
  #endif
- 
+
 -void* call_aligned_malloc(size_t size) {
 -#if PY_VERSION_HEX >= 0x03040000
 -    if(is_tracemalloc_enabled()){
@@ -134,7 +134,7 @@ index 81e9e33..37eb172 100644
 +extern void call_free(void*);
 +#endif // !defined(_MSC_VER)
 +static int _prevent_empty_translation_unit;
- 
+
 -void* call_aligned_realloc(void* input, size_t size) {
 -#if PY_VERSION_HEX >= 0x03040000
 -    if(is_tracemalloc_enabled()){
@@ -275,9 +275,9 @@ index edd0080..acfd30b 100644
 +    }
 +}
 +
- #   define PyArray_malloc call_aligned_malloc 
+ #   define PyArray_malloc call_aligned_malloc
  #   define PyArray_free call_free
- #   define PyArray_realloc call_aligned_realloc 
+ #   define PyArray_realloc call_aligned_realloc
 diff --git a/numpy/core/src/multiarray/item_selection.c b/numpy/core/src/multiarray/item_selection.c
 index 7c72d49..ae144f2 100644
 --- a/numpy/core/src/multiarray/item_selection.c
@@ -289,7 +289,7 @@ index 7c72d49..ae144f2 100644
 -#include "mkl_cpy.c"
 +#include "mkl_cpy.h"
  #include "alloc.h"
- 
+
  #define memmove(src, dst, size) call_mkl_mv(src, dst, size, __FILE__, __func__, __LINE__)
 diff --git a/numpy/core/src/umath/loops.c.src b/numpy/core/src/umath/loops.c.src
 index 4342d70..cadd248 100644
@@ -298,7 +298,7 @@ index 4342d70..cadd248 100644
 @@ -42,6 +42,15 @@
  #define VML_ASM_THRESHOLD 100000
  #define VML_D_THRESHOLD 8000
- 
+
 +// Fix the definition of __assume_aligned for GCC/clang toolchain
 +#ifndef _MSC_VER
 +#define __assume_aligned(var, align) (var=(__typeof__(var))\
@@ -309,7 +309,7 @@ index 4342d70..cadd248 100644
 +#endif
 +
  #define MKL_INT_MAX ((npy_intp) ((~((MKL_UINT) 0)) >> 1))
- 
+
  #define CHUNKED_VML_CALL2(vml_func, n, type, in1, op1)   \
 @@ -162,7 +171,7 @@
      npy_intp is1 = steps[0], os1 = steps[1];\
@@ -318,7 +318,7 @@ index 4342d70..cadd248 100644
 -    _Pragma("simd")\
 +    \
      for(i = 0; i < n; i++, ip1 += is1, op1 += os1)
- 
+
  #define UNARY_LOOP_DISPATCH(cond, body)\
 @@ -2594,7 +2603,7 @@ NPY_NO_EXPORT void
  		    if( DISJOINT_OR_SAME(op1_shifted, ip1_aligned, j_max, 1) &&
@@ -350,8 +350,8 @@ index 4342d70..cadd248 100644
 @@ -3084,7 +3093,7 @@ NPY_NO_EXPORT void
              const npy_intp blocked_end = npy_blocked_end(peel, sizeof(@type@), vsize, n);
              npy_intp i;
- 
--	     _Pragma("novector")
+
+-	     _Pragma("novector");
 +
              for(i = 0; i < peel; i++) {
                  op1[i] = ip1[i] @OP@ ip2[i];
@@ -368,17 +368,17 @@ index 4342d70..cadd248 100644
 @@ -3112,7 +3121,7 @@ NPY_NO_EXPORT void
                  }
              }
- 
--	     _Pragma("novector")
+
+-	     _Pragma("novector");
 +
              for(; i < n; i++) {
                  op1[i] = ip1[i] @OP@ ip2[i];
              }
 @@ -3128,7 +3137,7 @@ NPY_NO_EXPORT void
          npy_intp i;
- 
+
          const @type@ ip1c = ip1[0];
--	 _Pragma("novector")
+-	 _Pragma("novector");
 +
          for(i = 0; i < peel; i++) {
              op1[i] = ip1c @OP@ ip2[i];
@@ -386,17 +386,17 @@ index 4342d70..cadd248 100644
 @@ -3147,7 +3156,7 @@ NPY_NO_EXPORT void
              }
          }
- 
--	 _Pragma("novector")
+
+-	 _Pragma("novector");
 +
          for(; i < n; i++) {
              op1[i] = ip1c @OP@ ip2[i];
          }
 @@ -3162,7 +3171,7 @@ NPY_NO_EXPORT void
          npy_intp i;
- 
+
          const @type@ ip2c = ip2[0];
--	 _Pragma("novector")
+-	 _Pragma("novector");
 +
          for(i = 0; i < peel; i++) {
              op1[i] = ip1[i] @OP@ ip2c;
@@ -404,12 +404,11 @@ index 4342d70..cadd248 100644
 @@ -3181,7 +3190,7 @@ NPY_NO_EXPORT void
              }
          }
- 
--	 _Pragma("novector")
+
+-	 _Pragma("novector");
 +
          for(; i < n; i++) {
              op1[i] = ip1[i] @OP@ ip2c;
          }
--- 
+--
 2.20.1
-

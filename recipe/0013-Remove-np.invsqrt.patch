@@ -1,7 +1,7 @@
-From 53a3f5892397904961797cb787bb7eb31fb4b063 Mon Sep 17 00:00:00 2001
+From 12dbfbd46eab95a051c91ff2345d34dd491b0ec8 Mon Sep 17 00:00:00 2001
 From: Sophia Castellarin <scastellarin@anaconda.com>
-Date: Fri, 9 Aug 2019 08:51:54 -0500
-Subject: [PATCH] Remove np.invsqt
+Date: Tue, 13 Aug 2019 16:40:12 -0500
+Subject: [PATCH] Remove np.invsqrt
 
 ---
  numpy/core/code_generators/generate_umath.py  |  9 ------
@@ -40,9 +40,9 @@ index 19605a069..f6ab39848 100644
 --- a/numpy/core/code_generators/ufunc_docstrings.py
 +++ b/numpy/core/code_generators/ufunc_docstrings.py
 @@ -3612,34 +3612,6 @@ add_newdoc('numpy.core.umath', 'sqrt',
-
+ 
      """)
-
+ 
 -add_newdoc('numpy.core.umath', 'invsqrt',
 -    """
 -    Return the positive 1/square-root of an array, element-wise.
@@ -84,7 +84,7 @@ index 72d95fa4c..6f4bf95e3 100644
  NPY_INPLACE double npy_sqrt(double x);
 -NPY_INPLACE double npy_invsqrt(double x);
  NPY_INPLACE double npy_cbrt(double x);
-
+ 
  NPY_INPLACE double npy_fabs(double x);
 @@ -288,7 +287,6 @@ NPY_INPLACE float npy_ceilf(float x);
  NPY_INPLACE float npy_rintf(float x);
@@ -104,26 +104,26 @@ index 72d95fa4c..6f4bf95e3 100644
  NPY_INPLACE npy_longdouble npy_logl(npy_longdouble x);
 @@ -491,7 +488,6 @@ npy_cdouble npy_clog(npy_cdouble z);
  npy_cdouble npy_cpow(npy_cdouble x, npy_cdouble y);
-
+ 
  npy_cdouble npy_csqrt(npy_cdouble z);
 -npy_cdouble npy_cinvsqrt(npy_cdouble z);
-
+ 
  npy_cdouble npy_ccos(npy_cdouble z);
  npy_cdouble npy_csin(npy_cdouble z);
 @@ -521,7 +517,6 @@ npy_cfloat npy_clogf(npy_cfloat z);
  npy_cfloat npy_cpowf(npy_cfloat x, npy_cfloat y);
-
+ 
  npy_cfloat npy_csqrtf(npy_cfloat z);
 -npy_cfloat npy_cinvsqrtf(npy_cfloat z);
-
+ 
  npy_cfloat npy_ccosf(npy_cfloat z);
  npy_cfloat npy_csinf(npy_cfloat z);
 @@ -552,7 +547,6 @@ npy_clongdouble npy_clogl(npy_clongdouble z);
  npy_clongdouble npy_cpowl(npy_clongdouble x, npy_clongdouble y);
-
+ 
  npy_clongdouble npy_csqrtl(npy_clongdouble z);
 -npy_clongdouble npy_cinvsqrtl(npy_clongdouble z);
-
+ 
  npy_clongdouble npy_ccosl(npy_clongdouble z);
  npy_clongdouble npy_csinl(npy_clongdouble z);
 diff --git a/numpy/core/setup_common.py b/numpy/core/setup_common.py
@@ -143,9 +143,9 @@ index f7f509765..f0980e5a9 100644
      # Disable multi-file interprocedural optimization in the Intel compiler on Linux
      # which generates intermediary object files and prevents checking the
      # float representation.
--    elif (sys.platform != "win32"
--            and cmd.compiler.compiler_type.startswith('intel')
--            and '-ipo' in cmd.compiler.cc_exe):
+-    elif (sys.platform != "win32" 
+-            and cmd.compiler.compiler_type.startswith('intel') 
+-            and '-ipo' in cmd.compiler.cc_exe):        
 +    elif (sys.platform != "win32"
 +            and cmd.compiler.compiler_type.startswith('intel')
 +            and '-ipo' in cmd.compiler.cc_exe):
@@ -159,7 +159,7 @@ index 3f6482531..851425c27 100644
 @@ -455,15 +455,6 @@ npy_csqrt@c@(@ctype@ z)
  #undef THRESH
  #endif
-
+ 
 -#ifndef HAVE_CINVSQRT@C@
 -
 -@ctype@
@@ -174,7 +174,7 @@ index 3f6482531..851425c27 100644
   * integer powers, but in the body use cpow if it is available.
 @@ -1802,9 +1793,9 @@ npy_@kind@@c@(@ctype@ z)
  /**end repeat1**/
-
+ 
  /**begin repeat1
 - * #kind = cerf,cexp,clog,csqrt,cinvsqrt,ccos,csin,ctan,ccosh,csinh,ctanh,
 + * #kind = cerf,cexp,clog,csqrt,ccos,csin,ctan,ccosh,csinh,ctanh,
@@ -190,7 +190,7 @@ index 2ced6a7d1..737758388 100644
 +++ b/numpy/core/src/npymath/npy_math_internal.h.src
 @@ -379,9 +379,9 @@ NPY_INPLACE double npy_log2(double x)
   */
-
+ 
  /**begin repeat1
 - * #kind = sin,cos,tan,sinh,cosh,tanh,fabs,floor,ceil,rint,trunc,sqrt,invsqrt,log10,
 + * #kind = sin,cos,tan,sinh,cosh,tanh,fabs,floor,ceil,rint,trunc,sqrt,log10,
@@ -199,11 +199,11 @@ index 2ced6a7d1..737758388 100644
 + * #KIND = SIN,COS,TAN,SINH,COSH,TANH,FABS,FLOOR,CEIL,RINT,TRUNC,SQRT,LOG10,
   *         LOG,ERF,EXP,EXPM1,ASIN,ACOS,ATAN,ASINH,ACOSH,ATANH,LOG1P,EXP2,LOG2#
   */
-
+ 
 @@ -472,19 +472,6 @@ NPY_INPLACE @type@ npy_@kind@@c@(@type@ x)
-
+ 
  /**end repeat1**/
-
+ 
 -/**begin repeat1
 - * #kind = invsqrt#
 - * #KIND = INVSQRT#
@@ -227,7 +227,7 @@ index b04c63e47..d5eeaedfb 100644
 @@ -314,13 +314,6 @@ nc_sqrt@c@(@ctype@ *x, @ctype@ *r)
      return;
  }
-
+ 
 -static void
 -nc_invsqrt@c@(@ctype@ *x, @ctype@ *r)
 -{
@@ -243,9 +243,9 @@ index a121472fe..2b6a3a11f 100644
 --- a/numpy/core/src/umath/loops.c.src
 +++ b/numpy/core/src/umath/loops.c.src
 @@ -1667,34 +1667,6 @@ NPY_NO_EXPORT void
-
+ 
  /**end repeat**/
-
+ 
 -/**begin repeat
 - * Float types
 - *  #type = npy_float, npy_double#
@@ -283,12 +283,13 @@ index 8079512b3..3f8b6c729 100644
 +++ b/numpy/core/src/umath/loops.h.src
 @@ -175,7 +175,7 @@ NPY_NO_EXPORT void
   */
-
+ 
  /**begin repeat1
 - * #func = sin,cos,tan,sinh,cosh,tanh,fabs,floor,ceil,rint,trunc,sqrt,invsqrt,log10,log,erf,
 + * #func = sin,cos,tan,sinh,cosh,tanh,fabs,floor,ceil,rint,trunc,sqrt,log10,log,erf,
   *         exp,expm1,arcsin,arccos,arctan,arcsinh,arccosh,arctanh,log1p,exp2,log2,cbrt#
   */
  NPY_NO_EXPORT void
---
-2.20.1
+-- 
+2.19.2
+
