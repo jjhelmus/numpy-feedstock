@@ -1,5 +1,5 @@
 {% set name = "numpy" %}
-{% set version = "1.16.4" %}
+{% set version = "1.16.5" %}
 {% set mkl_random_version = "1.0.2" %}
 {% set mkl_random_buildnumber = 0 %}
 {% set mkl_fft_version = "1.0.6" %}
@@ -11,7 +11,7 @@ package:
 
 source:
   - url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.zip
-    sha256: 7242be12a58fec245ee9734e625964b97cf7e3f2f7d016603f9e56660ce479c7
+    sha256: 8bb452d94e964b312205b0de1238dd7209da452343653ab214b5d681780e7a0c
     patches:
       - 0001-fix-windows-case-sensitivity.patch
       - 0002-simplify-arch-flags.patch
