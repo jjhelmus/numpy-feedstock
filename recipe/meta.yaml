@@ -10,7 +10,7 @@ source:
     sha256: {{ numpy_sha }}
     patches:
       # patches in this if block are pulled in from https://github.com/IntelPython/numpy/tree/intel/1.17.0/conda-recipe/v1.17-patches
-      {% if blas_impl == "mkl" and (not win or vc|int >= 14) -%}
+      {% if blas_impl == "mkl" and (not win) -%}
       - 0001-intel_mkl-version.patch
       - 0002-intel_use_mkl_fft.patch
       - 0003-intel_distribution.patch
@@ -29,7 +29,7 @@ source:
       - 0015-disable-broken-tests.patch
       - 0016-mark-known-failing-tests-on-ppc64le.patch
       # remaining patches are to get Intel's stuff to work with our compilers
-      {% if blas_impl == "mkl" and (not win or vc|int >= 14) -%}
+      {% if blas_impl == "mkl" and (not win) -%}
       - 0017-Remove-ICC-specific-flags.patch
       - 0018-Remove-np.invsqrt.patch
       - 0019-Rewrite-inlining.patch
