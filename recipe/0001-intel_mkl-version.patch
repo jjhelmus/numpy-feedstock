@@ -1,17 +1,17 @@
-From a38471fac237e5912d3abd3a72e70be6c87d2c04 Mon Sep 17 00:00:00 2001
+From 87d1c037d5c05be9b20fcafa405a6907ebd49b4a Mon Sep 17 00:00:00 2001
 From: Mike Sarahan <msarahan@gmail.com>
 Date: Wed, 25 Sep 2019 12:50:24 -0500
-Subject: [PATCH] intel_mkl version
+Subject: [PATCH 1/7] intel_mkl version
 
 ---
  numpy/__init__.py | 3 +++
  1 file changed, 3 insertions(+)
 
 diff --git a/numpy/__init__.py b/numpy/__init__.py
-index ba88c73..c3456b8 100644
+index 349914b2f..c5cf120df 100644
 --- a/numpy/__init__.py
 +++ b/numpy/__init__.py
-@@ -191,6 +191,9 @@ else:
+@@ -232,6 +232,9 @@ else:
      test = PytestTester(__name__)
      del PytestTester
  

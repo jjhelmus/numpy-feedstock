@@ -10,33 +10,15 @@ source:
     sha256: {{ numpy_sha }}
     patches:
       # patches in this if block are pulled in from https://github.com/IntelPython/numpy/tree/intel/1.17.0/conda-recipe/v1.17-patches
-      {% if blas_impl == "mkl" and (not win) -%}
+      {% if blas_impl == "mkl" -%}
       - 0001-intel_mkl-version.patch
       - 0002-intel_use_mkl_fft.patch
-      - 0003-intel_distribution.patch
-      - 0004-intel_umath_optimizations.patch
-      - 0005-intel_mkl_mem_all.patch
-      - 0006-intel_init_mkl.patch
-      - 0007-intel_mkl_random.patch
-      - 0008-intel_setup_add_whl_deps.patch
-      - 0009-intel_allow-pickle-is-false-on-save.patch
-      - 0010-intel-0_17_fixes.patch
+      - 0003-intel_init_mkl.patch
+      - 0004-intel_mkl_random.patch
+      - 0005-intel_setup_add_whl_deps.patch
+      - 0006-filter-out-warnings-when-importing-mkl_fft.patch
       {%- endif %}
-      - 0011-fix-windows-case-sensitivity.patch
-      - 0012-simplify-arch-flags.patch
-      - 0013-Obtain-and-prefer-custom-gfortran-from-env-variable.patch
-      - 0014-disable-memmap-filename-test-due-to-CI-link-confusio.patch
-      - 0015-disable-broken-tests.patch
-      - 0016-mark-known-failing-tests-on-ppc64le.patch
-      # remaining patches are to get Intel's stuff to work with our compilers
-      {% if blas_impl == "mkl" and (not win) -%}
-      - 0017-Remove-ICC-specific-flags.patch
-      - 0018-Remove-np.invsqrt.patch
-      - 0019-Rewrite-inlining.patch
-      - 0020-Fixes-from-Intel-Distribution.patch
-      - 0021-define-__THRESHOLD.patch
-      - 0022-filter-out-warnings-when-importing-mkl_fft.patch
-      {%- endif %}
+      - 0007-Obtain-and-prefer-custom-gfortran-from-env-variable.patch
 
 build:
   number: 0

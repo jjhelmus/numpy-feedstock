@@ -1,7 +1,7 @@
-From 397409c73055cebd11f087dc7c5f71c51c316a2c Mon Sep 17 00:00:00 2001
+From 776ee065c43b00d7a9fa8908ab556e406af644a1 Mon Sep 17 00:00:00 2001
 From: fwaters <fwaters@anaconda.com>
 Date: Mon, 23 Sep 2019 18:30:01 +0000
-Subject: [PATCH 02/22] intel_use_mkl_fft
+Subject: [PATCH 2/7] intel_use_mkl_fft
 
 ---
  numpy/core/tests/test_overrides.py |  1 +
@@ -22,10 +22,10 @@ index 63b0e4539..2c3ce5ce5 100644
          assert_equal(np.sum.__module__, 'numpy')
          assert_equal(np.char.equal.__module__, 'numpy.char')
 diff --git a/numpy/fft/__init__.py b/numpy/fft/__init__.py
-index 64b35bc19..825180373 100644
+index 37b3f0da6..6b9d8f94e 100644
 --- a/numpy/fft/__init__.py
 +++ b/numpy/fft/__init__.py
-@@ -9,3 +9,44 @@ from .helper import *
+@@ -199,3 +199,44 @@ from .helper import *
  from numpy._pytesttester import PytestTester
  test = PytestTester(__name__)
  del PytestTester
@@ -71,10 +71,10 @@ index 64b35bc19..825180373 100644
 +
 +del patch_fft
 diff --git a/numpy/tests/test_public_api.py b/numpy/tests/test_public_api.py
-index 807c98652..488661f78 100644
+index 0484bb8cd..f4daf27e2 100644
 --- a/numpy/tests/test_public_api.py
 +++ b/numpy/tests/test_public_api.py
-@@ -73,7 +73,7 @@ def test_numpy_linalg():
+@@ -104,7 +104,7 @@ def test_numpy_linalg():
      bad_results = check_dir(np.linalg)
      assert bad_results == {}
  
