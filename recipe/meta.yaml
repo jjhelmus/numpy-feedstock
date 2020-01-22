@@ -12,16 +12,12 @@ source:
       # patches in this if block are pulled in from https://github.com/IntelPython/numpy/tree/intel/1.17.0/conda-recipe/v1.17-patches
       {% if blas_impl == "mkl" -%}
       - 0001-intel_mkl-version.patch
-      - 0002-intel_use_mkl_fft.patch
       - 0003-intel_init_mkl.patch
-      - 0004-intel_mkl_random.patch
-      - 0005-intel_setup_add_whl_deps.patch
-      - 0006-filter-out-warnings-when-importing-mkl_fft.patch
       {%- endif %}
       - 0007-Obtain-and-prefer-custom-gfortran-from-env-variable.patch
 
 build:
-  number: 0
+  number: 1
   skip: True  # [(blas_impl == 'openblas' and win) or py2k]
   force_use_keys:
     - python
