@@ -8,11 +8,9 @@ source:
   - url: https://pypi.io/packages/source/n/numpy/numpy-{{ version }}.zip
     sha256: b8456987b637232602ceb4d663cb34106f7eb780e247d51a260b84760fd8f491
     patches:
-      {% if blas_impl == "mkl" -%}
-      - 0001-intel_mkl-version.patch
-      - 0003-intel_init_mkl.patch
-      {%- endif %}
-      - 0007-Obtain-and-prefer-custom-gfortran-from-env-variable.patch
+      - 0001-Obtain-and-prefer-custom-gfortran-from-env-variable.patch
+      - 0002-intel_mkl-version.patch  # [blas_impl == "mkl"]
+      - 0003-intel_init_mkl.patch  # [blas_impl == "mkl"]
 
 build:
   number: 0
