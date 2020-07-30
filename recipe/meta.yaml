@@ -36,27 +36,20 @@ outputs:
         - openblas-devel {{ openblas }}  # [blas_impl == "openblas"]
       run:
         - python
+    # When building out the initial package set for a new Python version the
+    # recommendataion is to build numpy-base but not numpy, then build
+    # mkl_fft and mkl_random, and then numpy.
+    # The false line will build numpy-base only
+    # {% if false %}
+    # The true line will build numpy-base and numpy
+    {% if true %}
     test:
       commands:
         - test -e $SP_DIR/numpy/distutils/site.cfg     # [unix]
         - IF NOT EXIST %SP_DIR%\numpy\distutils\site.cfg exit 1  # [win]
 
-  # devel exists mostly to add the run_exports info.
-  - name: numpy-devel
-    build:
-      run_exports:
-        - {{ pin_subpackage('numpy-base') }}
-    requirements:
-      host:
-        - python
-        # these import blas metapackages to ensure consistency with downstream libs that also use blas
-        - mkl-devel  {{ mkl }}  # [blas_impl == 'mkl']
-        - openblas-devel {{ openblas }}  # [blas_impl == 'openblas']
-      run:
-        - python
-        - {{ pin_subpackage('numpy-base', exact=True) }}
-
-  # NOTE: "numpy" metapackage is defined in numpy-metapackage feedstock to avoid cycles
+  # numpy is a metapackage that may include mkl_fft and mkl_random both of
+  # which require numpy-base to build
   - name: numpy
     requirements:
       build:
@@ -77,6 +70,7 @@ outputs:
     # Seems to fail with current version of blas for large numbers
     # https://github.com/conda-forge/numpy-feedstock/pull/179#issuecomment-569591828
     {% set tests_to_skip = tests_to_skip + " or test_sincos_float32" %}  # [linux64]
+    {% endif %}
     test:
       requires:
         - pytest
@@ -93,6 +87,21 @@ outputs:
       imports:
         - numpy
         - numpy.linalg.lapack_lite
+
+  # devel exists mostly to add the run_exports info.
+  - name: numpy-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage('numpy-base') }}
+    requirements:
+      host:
+        - python
+        # these import blas metapackages to ensure consistency with downstream libs that also use blas
+        - mkl-devel  {{ mkl }}  # [blas_impl == 'mkl']
+        - openblas-devel {{ openblas }}  # [blas_impl == 'openblas']
+      run:
+        - python
+        - {{ pin_subpackage('numpy-base', exact=True) }}
 
 
 about:
