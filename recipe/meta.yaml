@@ -1,7 +1,7 @@
 {% set version = "1.19.1" %}
 
 package:
-  name: numpy_base_dev_and_meta
+  name: numpy_and_numpy_base
   version: {{ version }}
 
 source:
@@ -85,22 +85,6 @@ outputs:
       imports:
         - numpy
         - numpy.linalg.lapack_lite
-
-  # devel exists mostly to add the run_exports info.
-  - name: numpy-devel
-    build:
-      run_exports:
-        - {{ pin_subpackage('numpy-base') }}
-    requirements:
-      host:
-        - python
-        # these import blas metapackages to ensure consistency with downstream libs that also use blas
-        - mkl-devel  {{ mkl }}  # [blas_impl == 'mkl']
-        - openblas-devel {{ openblas }}  # [blas_impl == 'openblas']
-      run:
-        - python
-        - {{ pin_subpackage('numpy-base', exact=True) }}
-
 
 about:
   home: http://numpy.scipy.org/
