@@ -6,9 +6,8 @@ package:
 
 source:
   - url: https://pypi.io/packages/source/n/numpy/numpy-{{ version }}.zip
-    sha256: b8456987b637232602ceb4d663cb34106f7eb780e247d51a260b84760fd8f491 
+    sha256: b8456987b637232602ceb4d663cb34106f7eb780e247d51a260b84760fd8f491
     patches:
-      # patches in this if block are pulled in from https://github.com/IntelPython/numpy/tree/intel/1.17.0/conda-recipe/v1.17-patches
       {% if blas_impl == "mkl" -%}
       - 0001-intel_mkl-version.patch
       - 0003-intel_init_mkl.patch
@@ -29,13 +28,10 @@ outputs:
     requirements:
       build:
         - {{ compiler("c") }}
-        - {{ compiler("fortran") }}
-        # HACK: need this for libquadmath.  Should fix the gcc package
-        - libgcc-ng                  # [linux]
       host:
-        - cython
         - python
-        - setuptools
+        - pip
+        - cython
         - mkl-devel  {{ mkl }}  # [blas_impl == "mkl"]
         - openblas-devel {{ openblas }}  # [blas_impl == "openblas"]
       run:
@@ -66,7 +62,6 @@ outputs:
       build:
         # for runtime alignment
         - {{ compiler('c') }}
-        - {{ compiler('fortran') }}
       host:
         - python
         # these import blas metapackages to ensure consistency with downstream libs that also use blas
@@ -74,7 +69,7 @@ outputs:
         - openblas-devel {{ openblas }}  # [blas_impl == 'openblas']
       run:
         - python
-        - numpy-base  {{ numpy_version }}
+        - {{ pin_subpackage('numpy-base', exact=True) }}
         # openblas or mkl runtime included with run_exports
         - mkl_fft  # [blas_impl == 'mkl']
         - mkl_random # [blas_impl == 'mkl' and (not win or vc>=14)]

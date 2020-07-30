@@ -2,7 +2,7 @@
 
 COPY %PREFIX%\site.cfg site.cfg
 
-python setup.py install --single-version-externally-managed --record=record.txt
+%PYTHON% -m pip install --no-deps --ignore-installed -v .
 if errorlevel 1 exit 1
 
 COPY %RECIPE_DIR%\f2py.bat %PREFIX%\Scripts
