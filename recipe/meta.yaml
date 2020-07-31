@@ -69,6 +69,9 @@ outputs:
     # Seems to fail with current version of blas for large numbers
     # https://github.com/conda-forge/numpy-feedstock/pull/179#issuecomment-569591828
     {% set tests_to_skip = tests_to_skip + " or test_sincos_float32" %}  # [linux64]
+    # Flawed test when using MKL
+    # https://github.com/numpy/numpy/issues/16769
+    {% set tests_to_skip = tests_to_skip + " or test_overrides" %}  # [blas_impl == 'mkl']
     test:
       requires:
         - pytest
